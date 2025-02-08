@@ -18,10 +18,27 @@ pub struct User {
     pub registered: bool
 }
 
+#[derive(Drop, Serde, starknet::Store)]
+pub enum ListingTag {
+    Sold,
+    ForSale
+}
 
 #[derive(Drop, Serde, starknet::Store)]
 pub struct Listing {
     pub id: u256,
     pub details: ByteArray,
     pub owner: ContractAddress,
+    pub price: u256,
+    pub tag: ListingTag
+}
+
+
+#[derive(Drop, Serde, starknet::Store)]
+pub struct PurchaseRequest {
+    pub listing_id: u256,
+    pub request_id: u256,
+    pub price: u256,
+    pub initiator: ContractAddress,
+    pub user: Option<User>
 }
