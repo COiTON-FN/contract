@@ -8,4 +8,5 @@ pub mod tokens {
 pub mod interfaces{
     pub mod ierc20;
     pub mod ierc721;
+    pub mod icoiton;
 }
