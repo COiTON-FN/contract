@@ -1,5 +1,4 @@
-use core::starknet::ContractAddress;
-use starknet::class_hash::ClassHash;
+use starknet::ContractAddress;
 
 
 #[derive(Drop, Serde, starknet::Store)]

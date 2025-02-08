@@ -1,6 +1,6 @@
 mod mods;
 use mods::types::{User, UserType, Listing, PurchaseRequest};
-use starknet::ContractAddress;
+use starknet::{ContractAddress, ClassHash};
 
 #[starknet::interface]
 pub trait ICoiton<TContractState> {
@@ -24,6 +24,10 @@ pub trait ICoiton<TContractState> {
     fn set_erc20(ref self: TContractState, address: ContractAddress);
     fn get_erc20(self: @TContractState) -> ContractAddress;
     fn get_erc721(self: @TContractState) -> ContractAddress;
+
+    // UTILITY FUNCTIONS
+    fn upgrade(ref self: TContractState, impl_hash: ClassHash);
+    fn version(self: @TContractState) -> u16;
 }
 
 #[starknet::contract]
@@ -34,11 +38,13 @@ mod Coiton {
         types::{User, UserType, Listing, PurchaseRequest, ListingTag}, errors::Errors,
         interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}}
     };
-    use starknet::{ContractAddress, storage::Map, get_caller_address, get_contract_address};
+    use starknet::{
+        ContractAddress, ClassHash, SyscallResultTrait, storage::Map, get_caller_address,
+        get_contract_address
+    };
     use core::{num::traits::Zero, panic_with_felt252};
     use openzeppelin_token::{
-        erc20::interface::{ERC20ABISafeDispatcher, ERC20ABIDispatcherTrait},
-        erc721::interface::{ERC721ABIDispatcher}
+        erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher}
     };
 
 
@@ -60,6 +66,8 @@ mod Coiton {
         // TOKENS SECTION
         erc20: ContractAddress,
         erc721: ContractAddress,
+        // UTILITY SECTION
+        version: u16
     }
 
     #[abi(embed_v0)]
@@ -249,6 +257,20 @@ mod Coiton {
         }
         fn get_erc721(self: @ContractState) -> ContractAddress {
             self.erc721.read()
+        }
+
+
+        //  UTILITY FUNCTIONS
+        fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
+            assert(impl_hash.is_non_zero(), 'Class hash cannot be zero');
+            assert(get_caller_address() == self.owner.read(), 'UNAUTHORIZED');
+            starknet::syscalls::replace_class_syscall(impl_hash).unwrap_syscall();
+            self.version.write(self.version.read() + 1);
+            // self.emit(Event::Upgraded(Upgraded { implementation: impl_hash }))
+        }
+
+        fn version(self: @ContractState) -> u16 {
+            self.version.read()
         }
     }
 }
