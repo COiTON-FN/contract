@@ -12,6 +12,7 @@ pub trait ICoiton<TContractState> {
     fn create_listing(ref self: TContractState, price: u256, details: ByteArray);
     fn get_all_listings(self: @TContractState) -> Array<Listing>;
     fn get_listings_by_ids(self: @TContractState, ids: Array<u256>) -> Array<Listing>;
+    fn get_user_listings(self: @TContractState, address: ContractAddress) -> Array<Listing>;
     fn create_purchase_request(ref self: TContractState, listing_id: u256, bid_price: Option<u256>);
     fn approve_purchase_request(ref self: TContractState, listing_id: u256, request_id: u256);
     fn get_listings_with_purchase_requests(
@@ -229,6 +230,19 @@ mod Coiton {
             let length = self.listing_count.read();
             while index <= length {
                 listings.append(self.listing.read(index));
+                index += 1;
+            };
+            listings
+        }
+        fn get_user_listings(self: @ContractState, address: ContractAddress) -> Array<Listing> {
+            let mut index = 1;
+            let mut listings = array![];
+            let length = self.listing_count.read();
+            while index <= length {
+                let listing = self.listing.read(index);
+                if listing.owner == address {
+                    listings.append(listing);
+                }
                 index += 1;
             };
             listings
