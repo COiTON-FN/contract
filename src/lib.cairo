@@ -12,6 +12,7 @@ pub trait ICoiton<TContractState> {
     fn create_listing(ref self: TContractState, price: u256, details: ByteArray);
     fn get_all_listings(self: @TContractState) -> Array<Listing>;
     fn get_listings_by_ids(self: @TContractState, ids: Array<u256>) -> Array<Listing>;
+    fn get_listing(self: @TContractState, id: u256) -> Listing;
     fn get_user_listings(self: @TContractState, address: ContractAddress) -> Array<Listing>;
     fn create_purchase_request(ref self: TContractState, listing_id: u256, bid_price: Option<u256>);
     fn approve_purchase_request(ref self: TContractState, listing_id: u256, request_id: u256);
@@ -253,6 +254,10 @@ mod Coiton {
                 listings.append(self.listing.read(id));
             };
             listings
+        }
+
+        fn get_listing(self: @ContractState, id: u256) -> Listing {
+            self.listing.read(id)
         }
 
         // TOKENS SECTION
