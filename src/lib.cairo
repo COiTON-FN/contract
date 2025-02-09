@@ -5,7 +5,7 @@ mod Coiton {
     use openzeppelin_token::erc721::ERC721ABIDispatcherTrait;
     use openzeppelin_token::erc20::interface::ERC20ABISafeDispatcherTrait;
     use super::mods::{
-        types::{User, UserType, Listing, PurchaseRequest, ListingTag}, errors::Errors,
+        types::{User, UserType, Listing, PurchaseRequest, ListingTag}, errors::Errors, events,
         interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
     };
     use starknet::{
@@ -40,6 +40,17 @@ mod Coiton {
         version: u16
     }
 
+    #[event]
+    #[derive(Copy, Drop, starknet::Event)]
+    // The event enum must be annotated with the `#[event]` attribute.
+    // It must also derive at least the `Drop` and `starknet::Event` traits.
+    pub enum Event {
+        Upgrade: events::Upgrade,
+        User: events::User,
+        CreateListing: events::CreateListing,
+        PurchaseRequest: events::PurchaseRequest,
+    }
+
     #[abi(embed_v0)]
     impl CoitonImpl of ICoiton<ContractState> {
         /// USER FUNCTIONS
@@ -54,12 +65,30 @@ mod Coiton {
             self.user_id_pointer.write(id, caller);
             self.user.write(caller, user);
             self.users_count.write(id);
+            self
+                .emit(
+                    Event::User(
+                        events::User {
+                            id, address: caller, event_type: events::UserEventType::Register
+                        }
+                    )
+                )
         }
         fn verify_user(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.owner.read(), Errors::UNAUTHORIZED);
             let user = self.user.read(address);
             assert(user.registered, Errors::NOT_REGISTERED);
             self.user.write(address, User { verified: true, ..user });
+            self
+                .emit(
+                    Event::User(
+                        events::User {
+                            id: user.id,
+                            address: get_caller_address(),
+                            event_type: events::UserEventType::Verify
+                        }
+                    )
+                )
         }
         fn get_user(self: @ContractState, address: ContractAddress) -> User {
             let user = self.user.read(address);
@@ -79,6 +108,7 @@ mod Coiton {
             self.listing_count.write(id);
             let nft = IERC721Dispatcher { contract_address: self.erc721.read() };
             nft.safe_mint(caller, id, [].span());
+            self.emit(Event::CreateListing(events::CreateListing { id, owner: caller, price }))
         }
 
         fn create_purchase_request(
@@ -122,6 +152,18 @@ mod Coiton {
                 );
             self.purchase_requests_count.write(listing_id, request_id);
             self.purchase_request_pointer.write((request_id, listing.owner), listing_id);
+            self
+                .emit(
+                    Event::PurchaseRequest(
+                        events::PurchaseRequest {
+                            listing_id,
+                            request_id,
+                            bid_price,
+                            initiator: caller,
+                            request_type: events::PurchaseRequestType::Create
+                        }
+                    )
+                )
         }
 
         fn approve_purchase_request(ref self: ContractState, listing_id: u256, request_id: u256) {
@@ -149,6 +191,18 @@ mod Coiton {
                 }
                 index += 1;
             };
+            self
+                .emit(
+                    Event::PurchaseRequest(
+                        events::PurchaseRequest {
+                            listing_id,
+                            request_id,
+                            bid_price: Option::None,
+                            initiator: caller,
+                            request_type: events::PurchaseRequestType::Approve
+                        }
+                    )
+                )
         }
 
         fn get_listing_purchase_requests(self: @ContractState, id: u256) -> Array<PurchaseRequest> {
@@ -253,7 +307,7 @@ mod Coiton {
             assert(get_caller_address() == self.owner.read(), 'UNAUTHORIZED');
             starknet::syscalls::replace_class_syscall(impl_hash).unwrap_syscall();
             self.version.write(self.version.read() + 1);
-            // self.emit(Event::Upgraded(Upgraded { implementation: impl_hash }))
+            self.emit(Event::Upgrade(events::Upgrade { implementation: impl_hash }))
         }
 
         fn version(self: @ContractState) -> u16 {
