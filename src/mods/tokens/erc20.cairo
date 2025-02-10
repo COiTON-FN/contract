@@ -2,7 +2,7 @@
 // Compatible with OpenZeppelin Contracts for Cairo ^0.20.0
 
 #[starknet::contract]
-mod COiTON {
+mod MyToken {
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
     use openzeppelin::upgrades::interface::IUpgradeable;
@@ -47,7 +47,7 @@ mod COiTON {
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
-        self.erc20.initializer("COiTON", "CTN");
+        self.erc20.initializer("MyToken", "MTK");
         self.ownable.initializer(owner);
     }
 
