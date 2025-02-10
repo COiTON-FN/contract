@@ -1,7 +1,7 @@
 use starknet::ContractAddress;
 
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Debug,Copy ,Drop, Serde, starknet::Store, Clone,PartialEq)]
 pub enum UserType {
     Entity,
     Individual

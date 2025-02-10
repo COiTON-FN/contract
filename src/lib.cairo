@@ -1,4 +1,4 @@
-mod mods;
+ pub mod mods;
 
 #[starknet::contract]
 mod Coiton {
