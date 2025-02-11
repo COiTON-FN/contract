@@ -1,7 +1,7 @@
  pub mod mods;
 
 #[starknet::contract]
-mod Coiton {
+pub mod Coiton {
     use openzeppelin_token::erc721::ERC721ABIDispatcherTrait;
     use openzeppelin_token::erc20::interface::ERC20ABISafeDispatcherTrait;
     use super::mods::{

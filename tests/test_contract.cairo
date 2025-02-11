@@ -18,9 +18,12 @@ use coiton::mods::interfaces::ierc20::{IERC20Dispatcher, IERC20DispatcherTrait};
 use coiton::mods::interfaces::icoiton::{ICoitonDispatcher, ICoitonDispatcherTrait};
 use coiton::mods::{types, errors, events, tokens};
 use coiton::mods::types::{User, UserType,Listing,ListingTag,PurchaseRequest};
+use coiton::mods::events::{UserEventType, CreateListing, PurchaseRequestType};
+use coiton::Coiton::{Event};
 
 
 const ADMIN: felt252 = 'ADMIN';
+
 
 
 fn _setup_() -> ContractAddress {
@@ -54,7 +57,7 @@ fn __deploy_Coiton_erc20__() -> ContractAddress {
 }
 
 fn USER() -> ContractAddress {
-    'recipient'.try_into().unwrap()
+    return 'recipient'.try_into().unwrap();
 }
 
 
@@ -94,7 +97,8 @@ fn test_register_user_as_individual() {
 }
 
 #[test]
-fn test_register_user_as_entity_and_individual() {
+#[should_panic(expected: 'ALREADY_EXIST')]
+fn test_register_user_entity_twice() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
@@ -108,41 +112,76 @@ fn test_register_user_as_entity_and_individual() {
     let is_registered_entity = coiton.get_user(User);
     assert!(is_registered_entity.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
 
-    // register as individual
-   
-    let details: ByteArray = "TEST_USERS_INDIVIDUAL";
-    coiton.register(UserType::Individual, details);
-    let is_registered_individual = coiton.get_user(User);
-    assert!(is_registered_individual.details == "TEST_USERS_INDIVIDUAL", "ALREADY_EXISTS");
+
+    let details1: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details1);
+    let is_registered_entity1 = coiton.get_user(User);
+    assert!(is_registered_entity1.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+
     stop_cheat_caller_address(coiton_contract_address);
 }
 
-// #[test]
-// #[should_panic(expected: 'ALREADY_EXISTS')]
-// fn test_register_user_as_entity_twice() {
-//     let coiton_contract_address = _setup_();
-//     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+#[test]
+#[should_panic(expected: 'ALREADY_EXIST')]
+fn test_register_user_individual_twice() {
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
-//     let User: ContractAddress = USER();
-//     start_cheat_caller_address(coiton_contract_address, User);
+    let User: ContractAddress = USER();
+    start_cheat_caller_address(coiton_contract_address, User);
 
-//     // register as entity the first time
+    // register as entity
    
-//     let details: ByteArray = "TEST_USERS_ENTITY";
-//     coiton.register(types::UserType::Entity, details);
-//     let is_registered_entity = coiton.get_user(User);
-//     assert!(is_registered_entity.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    let details: ByteArray = "TEST_USERS_INDIVIDUAL";
+    coiton.register(UserType::Individual, details);
+    let is_registered_entity = coiton.get_user(User);
+    assert!(is_registered_entity.details == "TEST_USERS_INDIVIDUAL", "ALREADY_EXISTS");
 
-//     // register as entity the second time
-    
-//     let details: ByteArray = "TEST_USERS_ENTITY";
-//     coiton.register(types::UserType::Entity, details);
-//     let is_registered_entity1 = coiton.get_user(User);
-//     assert!(is_registered_entity1.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
 
-//     // Panic with the error massage "ALREADY_EXISTS"
-//     assert_eq!(register_first, register_second, "ALREADY_EXISTS");
+    let details1: ByteArray = "TEST_USERS_INDIVIDUAL";
+    coiton.register(UserType::Individual, details1);
+    let is_registered_entity1 = coiton.get_user(User);
+    assert!(is_registered_entity1.details == "TEST_USERS_INDIVIDUAL", "ALREADY_EXISTS");
 
-//     stop_cheat_caller_address(coiton_contract_address);
-// }
+    stop_cheat_caller_address(coiton_contract_address);
+}
+
+
+#[test]
+fn test_register_user_emit_event(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+
+    let User: ContractAddress = USER();
+    let mut spy = spy_events();
+    start_cheat_caller_address(coiton_contract_address, User);
+
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+
+   // Check if the event was emitted
+  let expected_event = Event::User(
+        events::User {
+            id: 1,
+            address: User,
+            event_type: UserEventType::Register,
+        },
+    );
+    spy.assert_emitted(
+        @array![(coiton_contract_address, expected_event)]
+    );
+
+   
+
+    stop_cheat_caller_address(coiton_contract_address);
+}
+
+
+
+
+
+
 
