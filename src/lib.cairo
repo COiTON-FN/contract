@@ -19,7 +19,7 @@ pub mod Coiton {
 
 
     #[storage]
-    struct Storage {
+   struct Storage {
         owner: ContractAddress,
         users_count: u256,
         user_id_pointer: Map::<u256, ContractAddress>,
@@ -282,6 +282,11 @@ pub mod Coiton {
             self.listing.read(id)
         }
 
+        fn get_owner(self: @ContractState) -> ContractAddress {
+            self.owner.read()
+        }
+
+
         // TOKENS SECTION
         fn set_erc721(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.owner.read(), Errors::UNAUTHORIZED);
@@ -300,6 +305,7 @@ pub mod Coiton {
             self.erc721.read()
         }
 
+      
 
         //  UTILITY FUNCTIONS
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {

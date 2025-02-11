@@ -61,6 +61,8 @@ fn USER() -> ContractAddress {
 }
 
 
+
+
 #[test]
 fn test_register_user_as_entity() {
     let coiton_contract_address = _setup_();
@@ -173,11 +175,112 @@ fn test_register_user_emit_event(){
     spy.assert_emitted(
         @array![(coiton_contract_address, expected_event)]
     );
-
-   
-
     stop_cheat_caller_address(coiton_contract_address);
 }
+
+
+#[test]
+fn test_verify_user(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+
+    let User: ContractAddress = USER();
+    let Owner = coiton.get_owner();
+
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+    let is_verified = coiton.get_user(User);
+    assert!(is_verified.verified == true, "NOT_VERIFIED");
+    stop_cheat_caller_address(coiton_contract_address);
+    
+}
+
+
+#[test]
+fn test_verify_user_emit_event(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+
+    let User: ContractAddress = USER();
+    let Owner = coiton.get_owner();
+    let mut spy = spy_events();
+
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+    let is_verified = coiton.get_user(User);
+    assert!(is_verified.verified == true, "NOT_VERIFIED");
+
+    // Check if the event was emitted
+    let expected_event = Event::User(
+        events::User {
+            id: 1,
+            address: Owner,
+            event_type: UserEventType::Verify,
+        },
+    );
+    spy.assert_emitted(
+        @array![(coiton_contract_address, expected_event)]
+    );
+    stop_cheat_caller_address(coiton_contract_address);
+}
+
+
+#[test]
+#[should_panic(expected: 'UNAUTHORIZED')]
+fn test_verify_user_unauthorized(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+
+    let User: ContractAddress = USER();
+    let Owner = coiton.get_owner();
+
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, User);
+    coiton.verify_user(User);
+    let is_verified = coiton.get_user(User);
+    assert!(is_verified.verified == true, "NOT_VERIFIED");
+    stop_cheat_caller_address(coiton_contract_address);
+    
+}
+
+
+#[test]
+#[should_panic(expected: 'NOT_REGISTERED')]
+fn test_verify_user_not_registered(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+
+    let User: ContractAddress = USER();
+    let Owner = coiton.get_owner();
+
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+    stop_cheat_caller_address(coiton_contract_address);
+    
+}
+
+
+
 
 
 
