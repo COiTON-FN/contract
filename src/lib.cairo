@@ -1,4 +1,4 @@
- pub mod mods;
+pub mod mods;
 
 #[starknet::contract]
 pub mod Coiton {
@@ -16,10 +16,13 @@ pub mod Coiton {
     use openzeppelin_token::{
         erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher}
     };
-
+    // use snforge_std::{
+    //     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
+    //     DeclareResultTrait, spy_events, EventSpyAssertionsTrait, get_class_hash
+    // };
 
     #[storage]
-   struct Storage {
+    struct Storage {
         owner: ContractAddress,
         users_count: u256,
         user_id_pointer: Map::<u256, ContractAddress>,
@@ -49,6 +52,12 @@ pub mod Coiton {
         User: events::User,
         CreateListing: events::CreateListing,
         PurchaseRequest: events::PurchaseRequest,
+    }
+
+
+    #[constructor]
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.owner.write(owner);
     }
 
     #[abi(embed_v0)]
@@ -305,7 +314,6 @@ pub mod Coiton {
             self.erc721.read()
         }
 
-      
 
         //  UTILITY FUNCTIONS
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
