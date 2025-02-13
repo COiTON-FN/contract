@@ -53,8 +53,10 @@ pub mod Coiton {
 
 
     #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress) {
+    fn constructor(ref self: ContractState, owner: ContractAddress, coiton_erc20: ContractAddress, coiton_erc721: ContractAddress) {
         self.owner.write(owner);
+        self.erc20.write(coiton_erc20);
+        self.erc721.write(coiton_erc721);
     }
 
     #[abi(embed_v0)]
