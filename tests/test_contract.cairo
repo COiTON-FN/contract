@@ -29,40 +29,46 @@ fn OWNER() -> ContractAddress {
 }
 
 
-fn _setup_() -> (ContractAddress,ContractAddress,ContractAddress) {
+fn _setup_() -> ContractAddress {
     let coiton = declare("Coiton").unwrap().contract_class();
-    let coiton_erc = __deploy_Coiton_erc20__();
-    let coiton_erc721 = _deploy_coiton_erc721();
 
-    let mut calldata =array![];
+    let mut calldata = array![];
     OWNER().serialize(ref calldata);
-    coiton_erc.serialize(ref calldata);
-    coiton_erc721.serialize(ref calldata);
+    // coiton_erc.serialize(ref calldata);
+    // coiton_erc721.serialize(ref calldata);
     let (coiton_contract_address, _) = coiton.deploy(@calldata).unwrap();
-    return (coiton_contract_address, coiton_erc, coiton_erc721);
+    let coiton_erc20 = __deploy_Coiton_erc20__(coiton_contract_address);
+    let coiton_erc721 = _deploy_coiton_erc721(coiton_contract_address);
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    start_cheat_caller_address(coiton_contract_address, OWNER());
+
+    coiton.set_erc20(coiton_erc20);
+    coiton.set_erc721(coiton_erc721);
+    stop_cheat_caller_address(coiton_contract_address);
+
+    return coiton_contract_address;
 }
 
 
-fn _deploy_coiton_erc721() -> ContractAddress {
+fn _deploy_coiton_erc721(admin: ContractAddress) -> ContractAddress {
     let coiton_erc721_class_hash = declare("MyToken").unwrap().contract_class();
 
-    let mut events_constructor_calldata: Array<felt252> = array![ADMIN];
-    let (coiton_erc721_contract_address, _) = coiton_erc721_class_hash
-        .deploy(@events_constructor_calldata)
-        .unwrap();
-
-    return (coiton_erc721_contract_address);
+    // let mut events_constructor_calldata: Array<felt252> = array![ADMIN];
+    let mut calldata = array![];
+    admin.serialize(ref calldata);
+    let (coiton_erc721_contract_address, _) = coiton_erc721_class_hash.deploy(@calldata).unwrap();
+    // println!("{:?}", coiton_erc721_contract_address);
+    return coiton_erc721_contract_address;
 }
 
-fn __deploy_Coiton_erc20__() -> ContractAddress {
-    let coiton_erc20_class_hash = declare("CTN").unwrap().contract_class();
+fn __deploy_Coiton_erc20__(admin: ContractAddress) -> ContractAddress {
+    let coiton_erc20_class_hash = declare("CoitonToken").unwrap().contract_class();
+    let mut calldata = array![];
+    admin.serialize(ref calldata);
+    // let mut events_constructor_calldata: Array<felt252> = array![ADMIN];
+    let (coiton_erc20_contract_address, _) = coiton_erc20_class_hash.deploy(@calldata).unwrap();
 
-    let mut events_constructor_calldata: Array<felt252> = array![ADMIN];
-    let (coiton_erc20_contract_address, _) = coiton_erc20_class_hash
-        .deploy(@events_constructor_calldata)
-        .unwrap();
-
-    return (coiton_erc20_contract_address);
+    return coiton_erc20_contract_address;
 }
 
 fn USER() -> ContractAddress {
@@ -72,7 +78,7 @@ fn USER() -> ContractAddress {
 
 #[test]
 fn test_register_user_as_entity() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -88,7 +94,7 @@ fn test_register_user_as_entity() {
 
 #[test]
 fn test_register_user_as_individual() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -106,7 +112,7 @@ fn test_register_user_as_individual() {
 #[test]
 #[should_panic(expected: 'ALREADY_EXIST')]
 fn test_register_user_entity_twice() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -130,7 +136,7 @@ fn test_register_user_entity_twice() {
 #[test]
 #[should_panic(expected: 'ALREADY_EXIST')]
 fn test_register_user_individual_twice() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -154,7 +160,7 @@ fn test_register_user_individual_twice() {
 
 #[test]
 fn test_register_user_emit_event() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -178,7 +184,7 @@ fn test_register_user_emit_event() {
 
 #[test]
 fn test_verify_user() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -201,7 +207,7 @@ fn test_verify_user() {
 
 #[test]
 fn test_verify_user_emit_event() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -232,7 +238,7 @@ fn test_verify_user_emit_event() {
 #[test]
 #[should_panic(expected: 'UNAUTHORIZED')]
 fn test_verify_user_unauthorized() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -255,7 +261,7 @@ fn test_verify_user_unauthorized() {
 #[test]
 #[should_panic(expected: 'NOT_REGISTERED')]
 fn test_verify_user_not_registered() {
-    let (coiton_contract_address, _, _) = _setup_();
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
 
     let User: ContractAddress = USER();
@@ -265,21 +271,17 @@ fn test_verify_user_not_registered() {
     coiton.verify_user(User);
     stop_cheat_caller_address(coiton_contract_address);
 }
-
-
-
 #[test]
-fn test_create_listing(){
-    let (coiton_contract_address, coiton_erc721, _) = _setup_();
+fn test_create_listing() {
+    let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
-    let erc721 = IERC721Dispatcher { contract_address: coiton_erc721 };
-    let Owner = coiton.get_owner();
-    start_cheat_caller_address(coiton_contract_address, Owner);
-    coiton.set_erc721(coiton_erc721);
-    stop_cheat_caller_address(coiton_contract_address);
+    // let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
+    // let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+
+    // let Owner = coiton.get_owner();
 
     let User: ContractAddress = USER();
-    
+
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
     coiton.register(UserType::Entity, details);
@@ -290,10 +292,9 @@ fn test_create_listing(){
     start_cheat_caller_address(coiton_contract_address, User);
     let listing_details: ByteArray = "TEST_LISTING";
     coiton.create_listing(100, listing_details);
-    let listings = coiton.get_user_listings(User);
+    // let listings = coiton.get_user_listings(User);
     // assert!(listings.len() > 0, "NO_LISTINGS");
     // assert!(listings[0].listing_details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
 }
-
 

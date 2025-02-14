@@ -15,7 +15,7 @@ deploy:
 
 
 t:
-	export RUST_BACKTRACE=full && snforge test
+	export SNFORGE_BACKTRACE=1 && snforge test
 
 upgrade:
 	sncast \

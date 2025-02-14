@@ -10,12 +10,14 @@ pub mod Coiton {
     };
     use starknet::{
         ContractAddress, ClassHash, SyscallResultTrait, storage::Map, get_caller_address,
-        get_contract_address
+        get_contract_address,
     };
     use core::{num::traits::Zero, panic_with_felt252};
     use openzeppelin_token::{
         erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher}
     };
+    const decimal: u256 = 18;
+    const percentage: u256 = ((2) * 10 ^ decimal) / 100;
 
 
     #[storage]
@@ -37,7 +39,8 @@ pub mod Coiton {
         erc20: ContractAddress,
         erc721: ContractAddress,
         // UTILITY SECTION
-        version: u16
+        version: u16,
+        wallet: u256
     }
 
     #[event]
@@ -53,10 +56,8 @@ pub mod Coiton {
 
 
     #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress, coiton_erc20: ContractAddress, coiton_erc721: ContractAddress) {
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
         self.owner.write(owner);
-        self.erc20.write(coiton_erc20);
-        self.erc721.write(coiton_erc721);
     }
 
     #[abi(embed_v0)]
@@ -115,7 +116,7 @@ pub mod Coiton {
             self.listing.write(id, new_listing);
             self.listing_count.write(id);
             let nft = IERC721Dispatcher { contract_address: self.erc721.read() };
-            nft.safe_mint(caller, id, [].span());
+            nft.mint_coiton_nft(caller);
             self.emit(Event::CreateListing(events::CreateListing { id, owner: caller, price }))
         }
 
@@ -182,11 +183,13 @@ pub mod Coiton {
             assert(caller == listing.owner, Errors::UNAUTHORIZED);
             let nft = ERC721ABIDispatcher { contract_address: self.erc721.read() };
             assert(nft.get_approved(listing.id) == contract, Errors::INSUFFICIENT_ALLOWANCE);
-            nft.transfer_from(caller, contract, listing.id);
+            nft.transfer_from(listing.owner, caller, listing.id);
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
-            erc20.transfer(listing.owner, purchase_request.price).unwrap();
-            // TRANSFER NFT OWNERSHIP HERE
 
+            let percentage_value = listing.price * percentage;
+            let percentage_cut = listing.price - percentage_value;
+            erc20.transfer(listing.owner, percentage_cut).unwrap();
+            self.wallet.write(self.wallet.read() + percentage_value);
             self.listing.write(listing_id, Listing { tag: ListingTag::Sold, ..listing });
 
             /// REFUND BACK ANY OTHER PURCHASE REQUESTS
@@ -325,6 +328,17 @@ pub mod Coiton {
 
         fn version(self: @ContractState) -> u16 {
             self.version.read()
+        }
+
+
+        fn withdraw(ref self: ContractState) {
+            let owner = self.owner.read();
+            assert(get_caller_address() == owner, Errors::UNAUTHORIZED);
+            let wallet = self.wallet.read();
+            assert(wallet > 0, 'ZERO_BALANCE');
+            let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
+            erc20.transfer(owner, wallet).unwrap();
+            self.wallet.write(0);
         }
     }
 }

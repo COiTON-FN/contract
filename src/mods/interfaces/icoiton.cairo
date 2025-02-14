@@ -31,4 +31,5 @@ pub trait ICoiton<TContractState> {
     // UTILITY FUNCTIONS
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
     fn version(self: @TContractState) -> u16;
+    fn withdraw(ref self: TContractState);
 }
