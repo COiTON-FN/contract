@@ -18,13 +18,13 @@ pub struct User {
     pub registered: bool
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub enum ListingTag {
     Sold,
     ForSale
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct Listing {
     pub id: u256,
     pub details: ByteArray,
