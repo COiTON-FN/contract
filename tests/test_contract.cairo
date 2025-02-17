@@ -25,6 +25,8 @@ use coiton::Coiton::{Event};
 
 
 const ADMIN: felt252 = 'ADMIN';
+const ONE_E18: u256 = 1000000000000000000_u256;
+
 
 fn OWNER() -> ContractAddress {
     'owner'.try_into().unwrap()
@@ -75,6 +77,10 @@ fn __deploy_Coiton_erc20__(admin: ContractAddress) -> ContractAddress {
 
 fn USER() -> ContractAddress {
     return 'recipient'.try_into().unwrap();
+}
+
+fn BUYER() -> ContractAddress {
+    return 'buyer'.try_into().unwrap();
 }
 
 
@@ -521,3 +527,263 @@ fn test_create_listings_event(){
     spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
     stop_cheat_caller_address(coiton_contract_address);
 }
+
+
+#[test]
+fn test_create_purchase_request(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+  
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+    let Owner = coiton.get_owner();
+   
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+     erc20.mint(Buyer, mint_amount);
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+    
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // User create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(100, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Create purchase request
+    // Corrected: Apply cheatcode to ERC20 contract to impersonate Buyer
+    start_cheat_caller_address(erc20.contract_address, Buyer);
+     erc20.approve(coiton_contract_address, mint_amount);
+    assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
+    stop_cheat_caller_address(erc20.contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    let purchase_requests = coiton.get_listing_purchase_requests(1);
+    // assert_eq!(
+    //     purchase_requests,
+    //     array![
+    //         PurchaseRequest {
+    //             listing_id: 1,
+    //             request_id: 1,
+    //             price: 100,
+    //             initiator: Buyer,
+    //             user: Option::Some(User { id: get_user_id, address: User, user_type: UserType::Entity, details: "TEST_USERS_ENTITY", verified: true, registered: true })
+    //         }
+    //     ]
+    // );
+    stop_cheat_caller_address(coiton_contract_address);
+}
+
+
+#[test]
+#[should_panic(expected: 'INVALID_PARAM')]
+fn test_create_purchase_request_with_invalid_param(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+  
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+    // let address_zero: ContractAddress = 0.try_into().unwrap();
+
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+     erc20.mint(Buyer, mint_amount);
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // User create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(100, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Create purchase request
+    start_cheat_caller_address(erc20.contract_address, Buyer);
+     erc20.approve(coiton_contract_address, mint_amount);
+    assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
+    stop_cheat_caller_address(erc20.contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, User);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    stop_cheat_caller_address(coiton_contract_address);
+}
+
+
+#[test]
+#[should_panic(expected: 'ALREADY_EXIST')]
+fn test_create_purchase_request_already_exist(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+  
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+   
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+     erc20.mint(Buyer, mint_amount);
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // User create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(100, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Create purchase request
+    // Corrected: Apply cheatcode to ERC20 contract to impersonate Buyer
+    start_cheat_caller_address(erc20.contract_address, Buyer);
+     erc20.approve(coiton_contract_address, mint_amount);
+    assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
+    stop_cheat_caller_address(erc20.contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    stop_cheat_caller_address(coiton_contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    stop_cheat_caller_address(coiton_contract_address);
+
+}
+
+
+#[test]
+#[should_panic(expected: 'INSUFFICIENT_ALLOWANCE')]
+fn test_create_purchase_request_insufficient_allowance(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+  
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+   
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+     erc20.mint(Buyer, mint_amount);
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // User create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(100, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+   
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    stop_cheat_caller_address(coiton_contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    stop_cheat_caller_address(coiton_contract_address);
+
+}
+
+#[test]
+fn test_create_purchase_request_emit_event(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+  
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+    let Owner = coiton.get_owner();
+    let mut spy = spy_events();
+   
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+     erc20.mint(Buyer, mint_amount);
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+   
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // User create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(100, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Create purchase request
+    // Corrected: Apply cheatcode to ERC20 contract to impersonate Buyer
+    start_cheat_caller_address(erc20.contract_address, Buyer);
+     erc20.approve(coiton_contract_address, mint_amount);
+    assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
+    stop_cheat_caller_address(erc20.contract_address);
+
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    let purchase_requests = coiton.get_listing_purchase_requests(1);
+
+    // Check if the event was emitted
+    let expected_event = Event::PurchaseRequest(
+        events::PurchaseRequest {
+            listing_id: 1,
+            request_id: 1,
+            bid_price: Option::Some(100_u256),
+            initiator: Buyer,
+            request_type: PurchaseRequestType::Create,
+        },
+    );
+    spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
+    stop_cheat_caller_address(coiton_contract_address);
+
+}
+
+
+
+
+
+
+
+

@@ -298,6 +298,7 @@ pub mod Coiton {
         }
 
 
+
         // TOKENS SECTION
         fn set_erc721(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.owner.read(), Errors::UNAUTHORIZED);

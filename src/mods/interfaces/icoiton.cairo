@@ -21,13 +21,15 @@ pub trait ICoiton<TContractState> {
     ) -> Array<Listing>;
     fn get_listing_purchase_requests(self: @TContractState, id: u256) -> Array<PurchaseRequest>;
     fn get_owner(self: @TContractState) -> ContractAddress;
+   
+
 
     //  TOKENS SECTION
     fn set_erc721(ref self: TContractState, address: ContractAddress);
     fn set_erc20(ref self: TContractState, address: ContractAddress);
     fn get_erc20(self: @TContractState) -> ContractAddress;
     fn get_erc721(self: @TContractState) -> ContractAddress;
-
+ 
     // UTILITY FUNCTIONS
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
     fn version(self: @TContractState) -> u16;
