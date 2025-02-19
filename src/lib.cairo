@@ -194,7 +194,7 @@ pub mod Coiton {
 
             /// REFUND BACK ANY OTHER PURCHASE REQUESTS
             let mut index = 1;
-            let length = self.purchase_requests_count.read(listing_id) + 1;
+            let length = self.purchase_requests_count.read(listing_id);
             while index <= length {
                 let _purchase_request = self.purchase_request.read((listing_id, index));
                 if _purchase_request.initiator != purchase_request.initiator {
@@ -293,14 +293,15 @@ pub mod Coiton {
             self.listing.read(id)
         }
 
-        fn get_purchase(self: @ContractState, listing_id: u256, request_id: u256) -> PurchaseRequest {
+        fn get_purchase(
+            self: @ContractState, listing_id: u256, request_id: u256
+        ) -> PurchaseRequest {
             self.purchase_request.read((listing_id, request_id))
-        }   
+        }
 
         fn get_owner(self: @ContractState) -> ContractAddress {
             self.owner.read()
         }
-
 
 
         // TOKENS SECTION
