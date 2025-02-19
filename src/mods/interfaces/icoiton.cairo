@@ -21,6 +21,7 @@ pub trait ICoiton<TContractState> {
     ) -> Array<Listing>;
     fn get_listing_purchase_requests(self: @TContractState, id: u256) -> Array<PurchaseRequest>;
     fn get_owner(self: @TContractState) -> ContractAddress;
+    fn get_purchase(self: @TContractState, listing_id: u256, request_id: u256) -> PurchaseRequest;
    
 
 

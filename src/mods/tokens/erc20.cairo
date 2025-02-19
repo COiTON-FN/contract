@@ -55,7 +55,7 @@ pub mod CoitonToken {
     }
 
     #[abi(embed_v0)]
-    impl StakingTokenImpl of IERC20<ContractState> {
+    impl CoitonTokenImpl of IERC20<ContractState> {
         fn total_supply(self: @ContractState) -> u256 {
             self.total_supply.read()
         }

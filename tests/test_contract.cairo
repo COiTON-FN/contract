@@ -7,6 +7,11 @@ use core::traits::{TryInto, Into};
 use core::byte_array::{ByteArray, ByteArrayTrait};
 
 
+use openzeppelin_token::{
+    erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher, ERC721ABI , IERC721}
+};
+
+
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
     DeclareResultTrait, spy_events, EventSpyAssertionsTrait, get_class_hash
@@ -781,9 +786,89 @@ fn test_create_purchase_request_emit_event(){
 }
 
 
+#[test]
+fn test_approve_purchase_request() {
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+    let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
+
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+    let Owner = coiton.get_owner();
+
+    // Mint sufficient funds to Buyer (10000 * 1e18)
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+    erc20.mint(Buyer, mint_amount);
+    assert!(erc20.balance_of(Buyer) == mint_amount, "ERC20_TRANSFER_FAILED");
+    let amount: u256 = 2000000000_u256 * ONE_E18;
+    erc20.mint(coiton_contract_address, amount);
+    assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
 
+    let user_mint: u256 = 3000000000000_u256 * ONE_E18;
+    erc20.mint(User, user_mint);
+    assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
+   
+   
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Verify user (admin action)
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(100, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Approve ERC20 spending
+    start_cheat_caller_address(erc20.contract_address, Buyer);
+    erc20.approve(coiton_contract_address, mint_amount);
+    assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "ALLOWANCE_FAILED");
+    stop_cheat_caller_address(erc20.contract_address);
+
+    // Create purchase request
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    let purchase_requests = coiton.get_listing_purchase_requests(1);
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Approve NFT transfer
+    start_cheat_caller_address(erc721.contract_address, User);
+    erc721.approve(coiton_contract_address, listings.id);
+    assert!(erc721.get_approved(listings.id) == coiton_contract_address, "INSUFFICIENT_ALLOWANCE");
+    stop_cheat_caller_address(erc721.contract_address);
 
 
+    // start_cheat_caller_address(coiton_contract_address, User);
+    // erc20.approve(coiton_contract_address, mint_amount);
+    // // assert!(erc20.allowance(User, coiton_contract_address) == mint_amount, "ALLOWANCE_FAILED");
+    // erc20.mint(coiton_contract_address, amount);
+
+    // assert!(erc20.balance_of(coiton_contract_address) == amount, "___ERC20_TRANSFER_FAILED");
+    // erc20.transfer(User, mint_amount);
+    // assert!(erc20.balance_of(User) == 0, "ERC20_TRANSFER_FAILED");
+    // stop_cheat_caller_address(coiton_contract_address);
 
 
+    // Execute approval
+    start_cheat_caller_address(coiton_contract_address, User);
+    coiton.approve_purchase_request(listings.id,1);
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Verify final state
+    // let updated_listing = coiton.get_listing(1);
+    // assert!(updated_listing.tag == ListingTag::Sold, "LISTING_NOT_MARKED_SOLD");
+}

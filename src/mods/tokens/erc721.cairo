@@ -93,5 +93,22 @@ pub mod MyToken {
         fn get_token_mint_timestamp(self: @ContractState, token_id: u256) -> u64 {
             self.mint_timestamp.read(token_id)
         }
+
+        fn approve(ref self: ContractState, to: ContractAddress, token_id: u256) {
+            self.erc721.approve(to, token_id);
+        }
+
+        fn get_approved(self: @ContractState, token_id: u256) -> ContractAddress {
+            self.erc721.get_approved(token_id)
+        }
+
+        fn transfer_from(
+            ref self: ContractState,
+            from: ContractAddress,
+            to: ContractAddress,
+            token_id: u256,
+        ) {
+            self.erc721.transfer_from(from, to, token_id);
+        }
     }
 }

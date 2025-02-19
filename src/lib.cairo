@@ -181,7 +181,7 @@ pub mod Coiton {
             let caller = get_caller_address();
             let contract = get_contract_address();
             assert(caller == listing.owner, Errors::UNAUTHORIZED);
-            let nft = ERC721ABIDispatcher { contract_address: self.erc721.read() };
+            let nft = IERC721Dispatcher { contract_address: self.erc721.read() };
             assert(nft.get_approved(listing.id) == contract, Errors::INSUFFICIENT_ALLOWANCE);
             nft.transfer_from(listing.owner, caller, listing.id);
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
@@ -292,6 +292,10 @@ pub mod Coiton {
         fn get_listing(self: @ContractState, id: u256) -> Listing {
             self.listing.read(id)
         }
+
+        fn get_purchase(self: @ContractState, listing_id: u256, request_id: u256) -> PurchaseRequest {
+            self.purchase_request.read((listing_id, request_id))
+        }   
 
         fn get_owner(self: @ContractState) -> ContractAddress {
             self.owner.read()
