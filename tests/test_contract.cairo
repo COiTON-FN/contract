@@ -8,7 +8,8 @@ use core::byte_array::{ByteArray, ByteArrayTrait};
 
 
 use openzeppelin_token::{
-    erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher, ERC721ABI , IERC721}
+    erc20::interface::{ERC20ABISafeDispatcher},
+    erc721::interface::{ERC721ABIDispatcher, ERC721ABI, IERC721}
 };
 
 
@@ -498,7 +499,7 @@ fn test_nft_was_minted_after_listings_was_created() {
 }
 
 #[test]
-fn test_create_listings_event(){
+fn test_create_listings_event() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
@@ -523,11 +524,7 @@ fn test_create_listings_event(){
 
     // Check if the event was emitted
     let expected_event = Event::CreateListing(
-        events::CreateListing {
-            id: 1,
-            owner: User,
-            price: 100,
-        },
+        events::CreateListing { id: 1, owner: User, price: 100, },
     );
     spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
     stop_cheat_caller_address(coiton_contract_address);
@@ -535,17 +532,17 @@ fn test_create_listings_event(){
 
 
 #[test]
-fn test_create_purchase_request(){
+fn test_create_purchase_request() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
-  
+
     let User: ContractAddress = USER();
     let Buyer: ContractAddress = BUYER();
     let Owner = coiton.get_owner();
-   
+
     let mint_amount: u256 = 10000_u256 * ONE_E18;
-     erc20.mint(Buyer, mint_amount);
+    erc20.mint(Buyer, mint_amount);
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -555,10 +552,9 @@ fn test_create_purchase_request(){
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
-
     start_cheat_caller_address(coiton_contract_address, Owner);
     coiton.verify_user(User);
-    
+
     stop_cheat_caller_address(coiton_contract_address);
 
     // User create listing
@@ -572,7 +568,7 @@ fn test_create_purchase_request(){
     // Create purchase request
     // Corrected: Apply cheatcode to ERC20 contract to impersonate Buyer
     start_cheat_caller_address(erc20.contract_address, Buyer);
-     erc20.approve(coiton_contract_address, mint_amount);
+    erc20.approve(coiton_contract_address, mint_amount);
     assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
     stop_cheat_caller_address(erc20.contract_address);
 
@@ -587,7 +583,9 @@ fn test_create_purchase_request(){
     //             request_id: 1,
     //             price: 100,
     //             initiator: Buyer,
-    //             user: Option::Some(User { id: get_user_id, address: User, user_type: UserType::Entity, details: "TEST_USERS_ENTITY", verified: true, registered: true })
+    //             user: Option::Some(User { id: get_user_id, address: User, user_type:
+    //             UserType::Entity, details: "TEST_USERS_ENTITY", verified: true, registered: true
+    //             })
     //         }
     //     ]
     // );
@@ -597,17 +595,17 @@ fn test_create_purchase_request(){
 
 #[test]
 #[should_panic(expected: 'INVALID_PARAM')]
-fn test_create_purchase_request_with_invalid_param(){
+fn test_create_purchase_request_with_invalid_param() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
-  
+
     let User: ContractAddress = USER();
     let Buyer: ContractAddress = BUYER();
     // let address_zero: ContractAddress = 0.try_into().unwrap();
 
     let mint_amount: u256 = 10000_u256 * ONE_E18;
-     erc20.mint(Buyer, mint_amount);
+    erc20.mint(Buyer, mint_amount);
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -627,7 +625,7 @@ fn test_create_purchase_request_with_invalid_param(){
 
     // Create purchase request
     start_cheat_caller_address(erc20.contract_address, Buyer);
-     erc20.approve(coiton_contract_address, mint_amount);
+    erc20.approve(coiton_contract_address, mint_amount);
     assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
     stop_cheat_caller_address(erc20.contract_address);
 
@@ -639,16 +637,16 @@ fn test_create_purchase_request_with_invalid_param(){
 
 #[test]
 #[should_panic(expected: 'ALREADY_EXIST')]
-fn test_create_purchase_request_already_exist(){
+fn test_create_purchase_request_already_exist() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
-  
+
     let User: ContractAddress = USER();
     let Buyer: ContractAddress = BUYER();
-   
+
     let mint_amount: u256 = 10000_u256 * ONE_E18;
-     erc20.mint(Buyer, mint_amount);
+    erc20.mint(Buyer, mint_amount);
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -669,7 +667,7 @@ fn test_create_purchase_request_already_exist(){
     // Create purchase request
     // Corrected: Apply cheatcode to ERC20 contract to impersonate Buyer
     start_cheat_caller_address(erc20.contract_address, Buyer);
-     erc20.approve(coiton_contract_address, mint_amount);
+    erc20.approve(coiton_contract_address, mint_amount);
     assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
     stop_cheat_caller_address(erc20.contract_address);
 
@@ -680,22 +678,21 @@ fn test_create_purchase_request_already_exist(){
     start_cheat_caller_address(coiton_contract_address, Buyer);
     coiton.create_purchase_request(listings.id, Option::Some(100));
     stop_cheat_caller_address(coiton_contract_address);
-
 }
 
 
 #[test]
 #[should_panic(expected: 'INSUFFICIENT_ALLOWANCE')]
-fn test_create_purchase_request_insufficient_allowance(){
+fn test_create_purchase_request_insufficient_allowance() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
-  
+
     let User: ContractAddress = USER();
     let Buyer: ContractAddress = BUYER();
-   
+
     let mint_amount: u256 = 10000_u256 * ONE_E18;
-     erc20.mint(Buyer, mint_amount);
+    erc20.mint(Buyer, mint_amount);
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -712,32 +709,30 @@ fn test_create_purchase_request_insufficient_allowance(){
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
-   
-    start_cheat_caller_address(coiton_contract_address, Buyer);
-    coiton.create_purchase_request(listings.id, Option::Some(100));
-    stop_cheat_caller_address(coiton_contract_address);
 
     start_cheat_caller_address(coiton_contract_address, Buyer);
     coiton.create_purchase_request(listings.id, Option::Some(100));
     stop_cheat_caller_address(coiton_contract_address);
 
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(100));
+    stop_cheat_caller_address(coiton_contract_address);
 }
 
 
-
 #[test]
-fn test_create_purchase_request_emit_event(){
+fn test_create_purchase_request_emit_event() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
-  
+
     let User: ContractAddress = USER();
     let Buyer: ContractAddress = BUYER();
     let Owner = coiton.get_owner();
     let mut spy = spy_events();
-   
+
     let mint_amount: u256 = 10000_u256 * ONE_E18;
-     erc20.mint(Buyer, mint_amount);
+    erc20.mint(Buyer, mint_amount);
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -747,10 +742,9 @@ fn test_create_purchase_request_emit_event(){
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
-
     start_cheat_caller_address(coiton_contract_address, Owner);
     coiton.verify_user(User);
-   
+
     stop_cheat_caller_address(coiton_contract_address);
 
     // User create listing
@@ -764,7 +758,7 @@ fn test_create_purchase_request_emit_event(){
     // Create purchase request
     // Corrected: Apply cheatcode to ERC20 contract to impersonate Buyer
     start_cheat_caller_address(erc20.contract_address, Buyer);
-     erc20.approve(coiton_contract_address, mint_amount);
+    erc20.approve(coiton_contract_address, mint_amount);
     assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "NOT_APPROVED");
     stop_cheat_caller_address(erc20.contract_address);
 
@@ -785,7 +779,6 @@ fn test_create_purchase_request_emit_event(){
     );
     spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
     stop_cheat_caller_address(coiton_contract_address);
-
 }
 
 
@@ -808,12 +801,9 @@ fn test_approve_purchase_request() {
     erc20.mint(coiton_contract_address, amount);
     assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
-
     let user_mint: u256 = 3000000000000_u256 * ONE_E18;
     erc20.mint(User, user_mint);
     assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
-   
-   
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -857,7 +847,7 @@ fn test_approve_purchase_request() {
 
     // Execute approval
     start_cheat_caller_address(coiton_contract_address, User);
-    coiton.approve_purchase_request(listings.id,1);
+    coiton.approve_purchase_request(listings.id, 1);
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify final state
@@ -868,7 +858,7 @@ fn test_approve_purchase_request() {
 
 #[test]
 #[should_panic(expected: 'UNAUTHORIZED')]
-fn test_approve_purchase_request_unauthorized(){
+fn test_approve_purchase_request_unauthorized() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -886,12 +876,9 @@ fn test_approve_purchase_request_unauthorized(){
     erc20.mint(coiton_contract_address, amount);
     assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
-
     let user_mint: u256 = 3000000000000_u256 * ONE_E18;
     erc20.mint(User, user_mint);
     assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
-   
-   
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -935,18 +922,17 @@ fn test_approve_purchase_request_unauthorized(){
 
     // Execute approval
     start_cheat_caller_address(coiton_contract_address, Buyer);
-    coiton.approve_purchase_request(listings.id,1);
+    coiton.approve_purchase_request(listings.id, 1);
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify final state
     let updated_listing = coiton.get_listing(1);
     assert!(updated_listing.tag == ListingTag::Sold, "LISTING_NOT_MARKED_SOLD");
-
 }
 
 #[test]
 #[should_panic(expected: 'INSUFFICIENT_ALLOWANCE')]
-fn test_approve_purchase_request_insufficient_allowance(){
+fn test_approve_purchase_request_insufficient_allowance() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -964,12 +950,9 @@ fn test_approve_purchase_request_insufficient_allowance(){
     erc20.mint(coiton_contract_address, amount);
     assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
-
     let user_mint: u256 = 3000000000000_u256 * ONE_E18;
     erc20.mint(User, user_mint);
     assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
-   
-   
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -1008,18 +991,17 @@ fn test_approve_purchase_request_insufficient_allowance(){
     // Execute approval
 
     start_cheat_caller_address(coiton_contract_address, User);
-    coiton.approve_purchase_request(listings.id,1);
+    coiton.approve_purchase_request(listings.id, 1);
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify final state
     let updated_listing = coiton.get_listing(1);
     assert!(updated_listing.tag == ListingTag::Sold, "LISTING_NOT_MARKED_SOLD");
-
 }
 
 
 #[test]
-fn test_approve_purchase_request_emit_event(){
+fn test_approve_purchase_request_emit_event() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -1039,12 +1021,9 @@ fn test_approve_purchase_request_emit_event(){
     erc20.mint(coiton_contract_address, amount);
     assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
-
     let user_mint: u256 = 3000000000000_u256 * ONE_E18;
     erc20.mint(User, user_mint);
     assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
-   
-   
 
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
@@ -1088,7 +1067,7 @@ fn test_approve_purchase_request_emit_event(){
 
     // Execute approval
     start_cheat_caller_address(coiton_contract_address, User);
-    coiton.approve_purchase_request(listings.id,1);
+    coiton.approve_purchase_request(listings.id, 1);
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify final state
@@ -1106,13 +1085,12 @@ fn test_approve_purchase_request_emit_event(){
         },
     );
     spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
-
 }
 
 
 #[test]
 #[should_panic(expected: 'NOT_FOR_SALE')]
-fn test_listings_sold(){
+fn test_listings_sold() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -1130,11 +1108,10 @@ fn test_listings_sold(){
     erc20.mint(coiton_contract_address, amount);
     assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
-
     let user_mint: u256 = 3000000000000_u256 * ONE_E18;
     erc20.mint(User, user_mint);
     assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
-   
+
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
@@ -1177,7 +1154,7 @@ fn test_listings_sold(){
 
     // Execute approval
     start_cheat_caller_address(coiton_contract_address, User);
-    coiton.approve_purchase_request(listings.id,1);
+    coiton.approve_purchase_request(listings.id, 1);
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify final state
@@ -1189,13 +1166,12 @@ fn test_listings_sold(){
     let purchase_requests = coiton.get_listing_purchase_requests(1);
     assert!(purchase_requests[0].initiator == @Buyer, "PURCHASE_REQUEST_NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
-    
 }
 
 
 #[test]
 #[should_panic(expected: 'PRICE_TOO_LOW')]
-fn test_create_purchase_request_price_too_low(){
+fn test_create_purchase_request_price_too_low() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -1213,11 +1189,10 @@ fn test_create_purchase_request_price_too_low(){
     erc20.mint(coiton_contract_address, amount);
     assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
 
-
     let user_mint: u256 = 3000000000000_u256 * ONE_E18;
     erc20.mint(User, user_mint);
     assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
-   
+
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
@@ -1247,7 +1222,7 @@ fn test_create_purchase_request_price_too_low(){
 
     // Create purchase request
     start_cheat_caller_address(coiton_contract_address, Buyer);
-    coiton.create_purchase_request(listings.id, Option::Some(101));   // This should fail but did not 
+    coiton.create_purchase_request(listings.id, Option::Some(101)); // This should fail but did not 
     let purchase_requests = coiton.get_listing_purchase_requests(1);
     assert!(purchase_requests[0].initiator == @Buyer, "PURCHASE_REQUEST_NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1260,15 +1235,11 @@ fn test_create_purchase_request_price_too_low(){
 
     // Execute approval
     start_cheat_caller_address(coiton_contract_address, User);
-    coiton.approve_purchase_request(listings.id,1);
+    coiton.approve_purchase_request(listings.id, 1);
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify final state
     let updated_listing = coiton.get_listing(1);
     assert!(updated_listing.tag == ListingTag::Sold, "LISTING_NOT_MARKED_SOLD");
-
 }
-
-
-
 

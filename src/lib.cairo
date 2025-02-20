@@ -133,7 +133,7 @@ pub mod Coiton {
             assert(!self.has_requested.read(caller), Errors::ALREADY_EXIST);
             assert(listing.owner != caller, Errors::INVALID_PARAM);
             if let Option::Some(_price) = bid_price {
-                assert(listing.price >= _price, Errors::PRICE_TOO_LOW);
+                assert(_price >= listing.price, Errors::PRICE_TOO_LOW);
             }
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
             let price = if let Option::Some(_price) = bid_price {
