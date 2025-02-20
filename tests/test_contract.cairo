@@ -1,32 +1,26 @@
 use starknet::ContractAddress;
 use core::option::OptionTrait;
-use core::starknet::SyscallResultTrait;
-use starknet::testing::set_block_timestamp;
 use core::result::ResultTrait;
-use core::traits::{TryInto, Into};
-use core::byte_array::{ByteArray, ByteArrayTrait};
+use core::traits::{TryInto};
+use core::byte_array::{ByteArray};
 
 
-use openzeppelin_token::{
-    erc20::interface::{ERC20ABISafeDispatcher},
-    erc721::interface::{ERC721ABIDispatcher, ERC721ABI, IERC721}
-};
 
 
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
-    DeclareResultTrait, spy_events, EventSpyAssertionsTrait, get_class_hash
+    DeclareResultTrait, spy_events, EventSpyAssertionsTrait
 };
 
-use starknet::{ClassHash, get_block_timestamp};
+use starknet::{ get_block_timestamp};
 
 
 use coiton::mods::interfaces::ierc721::{IERC721Dispatcher, IERC721DispatcherTrait};
 use coiton::mods::interfaces::ierc20::{IERC20Dispatcher, IERC20DispatcherTrait};
 use coiton::mods::interfaces::icoiton::{ICoitonDispatcher, ICoitonDispatcherTrait};
-use coiton::mods::{types, errors, events, tokens};
-use coiton::mods::types::{User, UserType, Listing, ListingTag, PurchaseRequest};
-use coiton::mods::events::{UserEventType, CreateListing, PurchaseRequestType};
+use coiton::mods::{events};
+use coiton::mods::types::{ UserType, Listing, ListingTag};
+use coiton::mods::events::{UserEventType, PurchaseRequestType};
 use coiton::Coiton::{Event};
 
 
@@ -506,7 +500,7 @@ fn test_nft_was_minted_after_listings_was_created() {
 fn test_create_listings_event() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
-    let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
+   
     let mut spy = spy_events();
 
     let User: ContractAddress = USER();
@@ -940,7 +934,6 @@ fn test_approve_purchase_request_insufficient_allowance() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
-    let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
 
     let User: ContractAddress = USER();
     let Buyer: ContractAddress = BUYER();
@@ -1324,6 +1317,7 @@ assert_eq!(listing_owner2, User2);
 
 stop_cheat_caller_address(coiton_contract_address);
 
+// Check if the listing owner is different
 assert_ne!(listing_owner,listing_owner2 );
 
 
