@@ -110,5 +110,9 @@ pub mod MyToken {
         ) {
             self.erc721.transfer_from(from, to, token_id);
         }
+
+        fn owner_of(self: @ContractState, token_id: u256) -> ContractAddress {
+            self.erc721.owner_of(token_id)
+        }
     }
 }

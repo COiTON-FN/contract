@@ -85,6 +85,10 @@ fn USER() -> ContractAddress {
     return 'recipient'.try_into().unwrap();
 }
 
+fn USER2() -> ContractAddress {
+    return 'recipient2'.try_into().unwrap();
+}
+
 fn BUYER() -> ContractAddress {
     return 'buyer'.try_into().unwrap();
 }
@@ -1222,7 +1226,7 @@ fn test_create_purchase_request_price_too_low() {
 
     // Create purchase request
     start_cheat_caller_address(coiton_contract_address, Buyer);
-    coiton.create_purchase_request(listings.id, Option::Some(101)); // This should fail but did not 
+    coiton.create_purchase_request(listings.id, Option::Some(90));
     let purchase_requests = coiton.get_listing_purchase_requests(1);
     assert!(purchase_requests[0].initiator == @Buyer, "PURCHASE_REQUEST_NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1241,5 +1245,88 @@ fn test_create_purchase_request_price_too_low() {
     // Verify final state
     let updated_listing = coiton.get_listing(1);
     assert!(updated_listing.tag == ListingTag::Sold, "LISTING_NOT_MARKED_SOLD");
+}
+
+
+#[test]
+fn test_create_listing_nft_owner(){
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
+
+    let User: ContractAddress = USER();
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    //User  1 create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+
+    let listing_dettails: ByteArray = "TEST_LISTING";
+
+    coiton.create_listing(100, listing_dettails);
+
+    // Get listings by user
+    let listings_by_users = coiton.get_user_listings(User);
+    assert_eq!(
+        listings_by_users,
+        array![
+            Listing {
+                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+            }
+        ]
+    );
+
+
+    // Get listing owner address 
+    let listing_owner = erc721.owner_of(1);
+    assert_eq!(listing_owner, User);
+
+  stop_cheat_caller_address(coiton_contract_address);
+
+   // User 2 create listings 
+
+   let User2: ContractAddress = USER2();
+
+   //Register User2 
+start_cheat_caller_address(coiton_contract_address, User2);
+let details2: ByteArray = "TEST_USERS_ENTITY";
+coiton.register(UserType::Entity, details2);
+let is_registered = coiton.get_user(User2);
+assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+stop_cheat_caller_address(coiton_contract_address);
+
+//User 2 create listing
+start_cheat_caller_address(coiton_contract_address, User2);
+
+let listing_dettails2: ByteArray = "TEST_LISTING";
+coiton.create_listing(100, listing_dettails2);
+
+// Get listings by user
+let listings_by_users2 = coiton.get_user_listings(User2);
+assert_eq!(
+    listings_by_users2,
+    array![
+        Listing {
+            id: 2, details: "TEST_LISTING", owner: User2, price: 100, tag: ListingTag::ForSale
+        }
+    ]
+);
+
+// Get listing owner address
+let listing_owner2 = erc721.owner_of(2);
+assert_eq!(listing_owner2, User2);
+
+stop_cheat_caller_address(coiton_contract_address);
+
+assert_ne!(listing_owner,listing_owner2 );
+
+
+
 }
 
