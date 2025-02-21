@@ -322,6 +322,10 @@ pub mod Coiton {
             self.erc721.read()
         }
 
+        fn get_wallet_balance(self: @ContractState) -> u256 {
+            self.wallet.read()
+        }
+
 
         //  UTILITY FUNCTIONS
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
