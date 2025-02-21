@@ -35,11 +35,8 @@ fn OWNER() -> ContractAddress {
 
 fn _setup_() -> ContractAddress {
     let coiton = declare("Coiton").unwrap().contract_class();
-
     let mut calldata = array![];
     OWNER().serialize(ref calldata);
-    // coiton_erc.serialize(ref calldata);
-    // coiton_erc721.serialize(ref calldata);
     let (coiton_contract_address, _) = coiton.deploy(@calldata).unwrap();
     let coiton_erc20 = __deploy_Coiton_erc20__(coiton_contract_address);
     let coiton_erc721 = _deploy_coiton_erc721(coiton_contract_address);
@@ -573,20 +570,10 @@ fn test_create_purchase_request() {
     start_cheat_caller_address(coiton_contract_address, Buyer);
     coiton.create_purchase_request(listings.id, Option::Some(100));
     let purchase_requests = coiton.get_listing_purchase_requests(1);
-    // assert_eq!(
-    //     purchase_requests,
-    //     array![
-    //         PurchaseRequest {
-    //             listing_id: 1,
-    //             request_id: 1,
-    //             price: 100,
-    //             initiator: Buyer,
-    //             user: Option::Some(User { id: get_user_id, address: User, user_type:
-    //             UserType::Entity, details: "TEST_USERS_ENTITY", verified: true, registered: true
-    //             })
-    //         }
-    //     ]
-    // );
+    assert!(purchase_requests[0].initiator == @Buyer, "PURCHASE_REQUEST_NOT_CREATED");
+    assert!(purchase_requests[0].price == @100_u256, "PURCHASE_REQUEST_NOT_CREATED");
+    assert!(purchase_requests[0].listing_id == @1_u256, "PURCHASE_REQUEST_NOT_CREATED");
+    assert!(purchase_requests[0].request_id == @1_u256, "PURCHASE_REQUEST_NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
 }
 

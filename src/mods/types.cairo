@@ -8,7 +8,7 @@ pub enum UserType {
     Entity,
 }
 
-#[derive(Drop, Debug , PartialEq,  Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct User {
     pub id: u256,
     pub verified: bool,
@@ -34,7 +34,7 @@ pub struct Listing {
 }
 
 
-#[derive(Drop, Debug, PartialEq,  Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct PurchaseRequest {
     pub listing_id: u256,
     pub request_id: u256,

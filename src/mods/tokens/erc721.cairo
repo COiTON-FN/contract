@@ -103,10 +103,7 @@ pub mod MyToken {
         }
 
         fn transfer_from(
-            ref self: ContractState,
-            from: ContractAddress,
-            to: ContractAddress,
-            token_id: u256,
+            ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u256,
         ) {
             self.erc721.transfer_from(from, to, token_id);
         }

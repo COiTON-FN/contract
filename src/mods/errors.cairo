@@ -10,6 +10,4 @@ pub mod Errors {
     pub const PRICE_TOO_LOW: felt252 = 'PRICE_TOO_LOW';
     pub const INVALID_PARAM: felt252 = 'INVALID_PARAM';
     pub const NOT_FOR_SALE: felt252 = 'NOT_FOR_SALE';
-    
-
 }

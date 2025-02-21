@@ -22,7 +22,6 @@ pub trait ICoiton<TContractState> {
     fn get_listing_purchase_requests(self: @TContractState, id: u256) -> Array<PurchaseRequest>;
     fn get_owner(self: @TContractState) -> ContractAddress;
     fn get_purchase(self: @TContractState, listing_id: u256, request_id: u256) -> PurchaseRequest;
-   
 
 
     //  TOKENS SECTION
@@ -30,7 +29,7 @@ pub trait ICoiton<TContractState> {
     fn set_erc20(ref self: TContractState, address: ContractAddress);
     fn get_erc20(self: @TContractState) -> ContractAddress;
     fn get_erc721(self: @TContractState) -> ContractAddress;
- 
+
     // UTILITY FUNCTIONS
     fn upgrade(ref self: TContractState, impl_hash: ClassHash);
     fn version(self: @TContractState) -> u16;
