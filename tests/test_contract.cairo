@@ -5,21 +5,19 @@ use core::traits::{TryInto};
 use core::byte_array::{ByteArray};
 
 
-
-
 use snforge_std::{
     declare, start_cheat_caller_address, stop_cheat_caller_address, ContractClassTrait,
     DeclareResultTrait, spy_events, EventSpyAssertionsTrait
 };
 
-use starknet::{ get_block_timestamp};
+use starknet::{get_block_timestamp};
 
 
 use coiton::mods::interfaces::ierc721::{IERC721Dispatcher, IERC721DispatcherTrait};
 use coiton::mods::interfaces::ierc20::{IERC20Dispatcher, IERC20DispatcherTrait};
 use coiton::mods::interfaces::icoiton::{ICoitonDispatcher, ICoitonDispatcherTrait};
 use coiton::mods::{events};
-use coiton::mods::types::{ UserType, Listing, ListingTag};
+use coiton::mods::types::{UserType, Listing, ListingTag, ListingType};
 use coiton::mods::events::{UserEventType, PurchaseRequestType};
 use coiton::Coiton::{Event};
 
@@ -27,7 +25,7 @@ use coiton::Coiton::{Event};
 const ADMIN: felt252 = 'ADMIN';
 const ONE_E18: u256 = 1000000000000000000_u256;
 
-
+const listing_type: ListingType = ListingType::Building;
 fn OWNER() -> ContractAddress {
     'owner'.try_into().unwrap()
 }
@@ -297,7 +295,7 @@ fn test_create_listing() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let listing_details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, listing_details);
+    coiton.create_listing(listing_type, 100, listing_details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
 
@@ -321,7 +319,7 @@ fn test_create_listing_by_id() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let listing_details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, listing_details);
+    coiton.create_listing(listing_type, 100, listing_details);
     let listings = coiton.get_listings_by_ids(array![1_u256]);
     assert!(listings[0].id == @1_u256, "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -344,13 +342,20 @@ fn test_create_listing_by_user() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let listing_details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, listing_details);
+    coiton.create_listing(listing_type, 100, listing_details);
     let listings = coiton.get_user_listings(User);
+    let user = coiton.get_user(User);
     assert_eq!(
         listings,
         array![
             Listing {
-                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+                id: 1,
+                details: "TEST_LISTING",
+                owner: User,
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::Some(user),
+                listing_type: ListingType::Building
             }
         ]
     );
@@ -373,13 +378,20 @@ fn test_all_create_listing() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let listing_details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, listing_details);
+    let user = coiton.get_user(User);
+    coiton.create_listing(listing_type, 100, listing_details);
     let listings = coiton.get_all_listings();
     assert_eq!(
         listings,
         array![
             Listing {
-                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+                id: 1,
+                details: "TEST_LISTING",
+                owner: User,
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::Some(user),
+                listing_type: ListingType::Building
             }
         ]
     );
@@ -399,7 +411,7 @@ fn test_create_listing_without_registering() {
     let listing_details: ByteArray = "TEST_LISTING";
 
     // Create listings
-    coiton.create_listing(100, listing_details);
+    coiton.create_listing(listing_type, 100, listing_details);
 
     // Get listings by id's
     let listings = coiton.get_listing(1);
@@ -416,7 +428,13 @@ fn test_create_listing_without_registering() {
         listings_by_users,
         array![
             Listing {
-                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+                id: 1,
+                details: "TEST_LISTING",
+                owner: USER(),
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::None,
+                listing_type: ListingType::Building
             }
         ]
     );
@@ -427,7 +445,13 @@ fn test_create_listing_without_registering() {
         listings_by_all,
         array![
             Listing {
-                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+                id: 1,
+                details: "TEST_LISTING",
+                owner: USER(),
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::None,
+                listing_type: ListingType::Building
             }
         ]
     );
@@ -456,15 +480,21 @@ fn test_nft_was_minted_after_listings_was_created() {
 
     let listing_dettails: ByteArray = "TEST_LISTING";
 
-    coiton.create_listing(100, listing_dettails);
-
+    coiton.create_listing(listing_type, 100, listing_dettails);
+    let user = coiton.get_user(User);
     // Get listings by user
     let listings_by_users = coiton.get_user_listings(User);
     assert_eq!(
         listings_by_users,
         array![
             Listing {
-                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+                id: 1,
+                details: "TEST_LISTING",
+                owner: User,
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::Some(user),
+                listing_type: ListingType::Building
             }
         ]
     );
@@ -497,7 +527,7 @@ fn test_nft_was_minted_after_listings_was_created() {
 fn test_create_listings_event() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
-   
+
     let mut spy = spy_events();
 
     let User: ContractAddress = USER();
@@ -515,7 +545,7 @@ fn test_create_listings_event() {
 
     let listing_dettails: ByteArray = "TEST_LISTING";
 
-    coiton.create_listing(100, listing_dettails);
+    coiton.create_listing(listing_type, 100, listing_dettails);
 
     // Check if the event was emitted
     let expected_event = Event::CreateListing(
@@ -555,7 +585,7 @@ fn test_create_purchase_request() {
     // User create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -603,7 +633,7 @@ fn test_create_purchase_request_with_invalid_param() {
     // User create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -644,7 +674,7 @@ fn test_create_purchase_request_already_exist() {
     // User create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -690,7 +720,7 @@ fn test_create_purchase_request_insufficient_allowance() {
     // User create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -735,7 +765,7 @@ fn test_create_purchase_request_emit_event() {
     // User create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -806,7 +836,7 @@ fn test_approve_purchase_request() {
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -881,7 +911,7 @@ fn test_approve_purchase_request_unauthorized() {
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -954,7 +984,7 @@ fn test_approve_purchase_request_insufficient_allowance() {
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1025,7 +1055,7 @@ fn test_approve_purchase_request_emit_event() {
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1112,7 +1142,7 @@ fn test_listings_sold() {
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1193,7 +1223,7 @@ fn test_create_purchase_request_price_too_low() {
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(100, details);
+    coiton.create_listing(listing_type, 100, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1229,7 +1259,7 @@ fn test_create_purchase_request_price_too_low() {
 
 
 #[test]
-fn test_create_listing_nft_owner(){
+fn test_create_listing_nft_owner() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
@@ -1248,8 +1278,8 @@ fn test_create_listing_nft_owner(){
     start_cheat_caller_address(coiton_contract_address, User);
 
     let listing_dettails: ByteArray = "TEST_LISTING";
-
-    coiton.create_listing(100, listing_dettails);
+    let user = coiton.get_user(User);
+    coiton.create_listing(listing_type, 100, listing_dettails);
 
     // Get listings by user
     let listings_by_users = coiton.get_user_listings(User);
@@ -1257,62 +1287,72 @@ fn test_create_listing_nft_owner(){
         listings_by_users,
         array![
             Listing {
-                id: 1, details: "TEST_LISTING", owner: User, price: 100, tag: ListingTag::ForSale
+                id: 1,
+                details: "TEST_LISTING",
+                owner: User,
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::Some(user),
+                listing_type: ListingType::Building
             }
         ]
     );
 
-
-    // Get listing owner address 
+    // Get listing owner address
     let listing_owner = erc721.owner_of(1);
     assert_eq!(listing_owner, User);
 
-  stop_cheat_caller_address(coiton_contract_address);
+    stop_cheat_caller_address(coiton_contract_address);
 
-   // User 2 create listings 
+    // User 2 create listings
 
-   let User2: ContractAddress = USER2();
+    let User2: ContractAddress = USER2();
 
-   //Register User2 
-start_cheat_caller_address(coiton_contract_address, User2);
-let details2: ByteArray = "TEST_USERS_ENTITY";
-coiton.register(UserType::Entity, details2);
-let is_registered = coiton.get_user(User2);
-assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
-stop_cheat_caller_address(coiton_contract_address);
+    //Register User2
+    start_cheat_caller_address(coiton_contract_address, User2);
+    let details2: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details2);
+    let is_registered = coiton.get_user(User2);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
 
-//User 2 create listing
-start_cheat_caller_address(coiton_contract_address, User2);
+    //User 2 create listing
+    start_cheat_caller_address(coiton_contract_address, User2);
 
-let listing_dettails2: ByteArray = "TEST_LISTING";
-coiton.create_listing(100, listing_dettails2);
+    let listing_dettails2: ByteArray = "TEST_LISTING";
+    coiton.create_listing(listing_type, 100, listing_dettails2);
 
-// Get listings by user
-let listings_by_users2 = coiton.get_user_listings(User2);
-assert_eq!(
-    listings_by_users2,
-    array![
-        Listing {
-            id: 2, details: "TEST_LISTING", owner: User2, price: 100, tag: ListingTag::ForSale
-        }
-    ]
-);
+    // Get listings by user
+    let listings_by_users2 = coiton.get_user_listings(User2);
+    let user2 = coiton.get_user(User2);
+    assert_eq!(
+        listings_by_users2,
+        array![
+            Listing {
+                id: 2,
+                details: "TEST_LISTING",
+                owner: User2,
+                price: 100,
+                tag: ListingTag::ForSale,
+                owner_details: Option::Some(user2),
+                listing_type: ListingType::Building
+            }
+        ]
+    );
 
-// Get listing owner address
-let listing_owner2 = erc721.owner_of(2);
-assert_eq!(listing_owner2, User2);
+    // Get listing owner address
+    let listing_owner2 = erc721.owner_of(2);
+    assert_eq!(listing_owner2, User2);
 
-stop_cheat_caller_address(coiton_contract_address);
+    stop_cheat_caller_address(coiton_contract_address);
 
-// Check if the listing owner is different
-assert_ne!(listing_owner,listing_owner2 );
-
+    // Check if the listing owner is different
+    assert_ne!(listing_owner, listing_owner2);
 }
 
 
-
 #[test]
-fn test_withdraw(){
+fn test_withdraw() {
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -1352,7 +1392,7 @@ fn test_withdraw(){
     // Create listing
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_LISTING";
-    coiton.create_listing(2000000000000000000_u256, details);
+    coiton.create_listing(listing_type, 2000000000000000000_u256, details);
     let listings = coiton.get_listing(1);
     assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1397,11 +1437,10 @@ fn test_withdraw(){
     );
     spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
 
-
     // Withdraw
     start_cheat_caller_address(coiton_contract_address, Owner);
     let wallet_balance = coiton.get_wallet_balance();
-    assert!(wallet_balance >= 0 , "WALLET_BALANCE_NOT_UPDATED");
+    assert!(wallet_balance >= 0, "WALLET_BALANCE_NOT_UPDATED");
     coiton.withdraw();
     let wallet_balance_after_withdraw = coiton.get_wallet_balance();
     assert!(wallet_balance_after_withdraw == 0, "WITHDRAW_FAILED");

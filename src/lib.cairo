@@ -5,8 +5,8 @@ pub mod Coiton {
     use openzeppelin_token::erc721::ERC721ABIDispatcherTrait;
     use openzeppelin_token::erc20::interface::ERC20ABISafeDispatcherTrait;
     use super::mods::{
-        types::{User, UserType, Listing, PurchaseRequest, ListingTag}, errors::Errors, events,
-        interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
+        types::{User, UserType, Listing, PurchaseRequest, ListingTag, ListingType}, errors::Errors,
+        events, interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
     };
     use starknet::{
         ContractAddress, ClassHash, SyscallResultTrait, storage::Map, get_caller_address,
@@ -17,7 +17,6 @@ pub mod Coiton {
         erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher}
     };
     const decimal: u256 = 18;
-    const percentage: u256 = ((2) * 10 ^ decimal) / 100;
 
 
     #[storage]
@@ -106,12 +105,20 @@ pub mod Coiton {
         }
 
         /// LISTING FUNCTIONS
-        fn create_listing(ref self: ContractState, price: u256, details: ByteArray) {
+        fn create_listing(
+            ref self: ContractState, listing_type: ListingType, price: u256, details: ByteArray
+        ) {
             let caller = get_caller_address();
             assert(self.user.read(caller).registered, Errors::NOT_REGISTERED);
             let id = self.listing_count.read() + 1;
             let new_listing = Listing {
-                id, details, owner: caller, price, tag: ListingTag::ForSale
+                id,
+                details,
+                owner: caller,
+                price,
+                tag: ListingTag::ForSale,
+                owner_details: Option::None,
+                listing_type
             };
             self.listing.write(id, new_listing);
             self.listing_count.write(id);
@@ -186,10 +193,11 @@ pub mod Coiton {
             nft.transfer_from(listing.owner, caller, listing.id);
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
 
-            let percentage_value = listing.price * percentage;
-            let percentage_cut = listing.price - percentage_value;
-            erc20.transfer(listing.owner, percentage_cut).unwrap();
-            self.wallet.write(self.wallet.read() + percentage_value);
+            let fee = (listing.price * 2) / 100;
+            let amount_to_send = listing.price - fee;
+
+            erc20.transfer(listing.owner, amount_to_send).unwrap();
+            self.wallet.write(self.wallet.read() + fee);
             self.listing.write(listing_id, Listing { tag: ListingTag::Sold, ..listing });
 
             /// REFUND BACK ANY OTHER PURCHASE REQUESTS
@@ -263,7 +271,11 @@ pub mod Coiton {
             let mut listings = array![];
             let length = self.listing_count.read();
             while index <= length {
-                listings.append(self.listing.read(index));
+                let listing = self.listing.read(index);
+                let listing_construct = Listing {
+                    owner_details: Option::Some(self.get_user(listing.owner)), ..listing
+                };
+                listings.append(listing_construct);
                 index += 1;
             };
             listings
@@ -273,9 +285,13 @@ pub mod Coiton {
             let mut listings = array![];
             let length = self.listing_count.read();
             while index <= length {
+                let user = self.get_user(address);
                 let listing = self.listing.read(index);
                 if listing.owner == address {
-                    listings.append(listing);
+                    let listing_construct = Listing {
+                        owner_details: Option::Some(user), ..listing
+                    };
+                    listings.append(listing_construct);
                 }
                 index += 1;
             };
@@ -290,7 +306,11 @@ pub mod Coiton {
         }
 
         fn get_listing(self: @ContractState, id: u256) -> Listing {
-            self.listing.read(id)
+            let listing = self.listing.read(id);
+            let listing_construct = Listing {
+                owner_details: Option::Some(self.get_user(listing.owner)), ..listing
+            };
+            listing_construct
         }
 
         fn get_purchase(

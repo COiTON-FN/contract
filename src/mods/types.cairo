@@ -25,12 +25,20 @@ pub enum ListingTag {
 }
 
 #[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
+pub enum ListingType {
+    Land,
+    Building
+}
+
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct Listing {
     pub id: u256,
     pub details: ByteArray,
     pub owner: ContractAddress,
     pub price: u256,
-    pub tag: ListingTag
+    pub tag: ListingTag,
+    pub owner_details: Option<User>,
+    pub listing_type: ListingType
 }
 
 
