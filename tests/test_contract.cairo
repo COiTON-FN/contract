@@ -1448,3 +1448,111 @@ fn test_withdraw() {
     stop_cheat_caller_address(coiton_contract_address);
 }
 
+
+#[test]
+#[should_panic(expected: 'ZERO_BALANCE')]
+fn test_withdraw_zero_balance() {
+
+    let coiton_contract_address = _setup_();
+    let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
+    let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
+    let erc721 = IERC721Dispatcher { contract_address: coiton.get_erc721() };
+
+    let User: ContractAddress = USER();
+    let Buyer: ContractAddress = BUYER();
+    let Owner = coiton.get_owner();
+
+    let mut spy = spy_events();
+
+    // Mint sufficient funds to Buyer (10000 * 1e18)
+    let mint_amount: u256 = 10000_u256 * ONE_E18;
+    erc20.mint(Buyer, mint_amount);
+    assert!(erc20.balance_of(Buyer) == mint_amount, "ERC20_TRANSFER_FAILED");
+    let amount: u256 = 2000000000_u256 * ONE_E18;
+    erc20.mint(coiton_contract_address, amount);
+    assert!(erc20.balance_of(coiton_contract_address) == amount, "ERC20_TRANSFER_FAILED ____");
+
+    let user_mint: u256 = 3000000000000_u256 * ONE_E18;
+    erc20.mint(User, user_mint);
+    assert!(erc20.balance_of(User) == user_mint, "ERC20_TRANSFER_FAILED");
+
+    // Register user
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_USERS_ENTITY";
+    coiton.register(UserType::Entity, details);
+    let is_registered = coiton.get_user(User);
+    assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Verify user (admin action)
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    coiton.verify_user(User);
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Create listing
+    start_cheat_caller_address(coiton_contract_address, User);
+    let details: ByteArray = "TEST_LISTING";
+    coiton.create_listing(listing_type, 2000000000000000000_u256, details);
+    let listings = coiton.get_listing(1);
+    assert!(listings.details == "TEST_LISTING", "NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Approve ERC20 spending
+    start_cheat_caller_address(erc20.contract_address, Buyer);
+    erc20.approve(coiton_contract_address, mint_amount);
+    assert!(erc20.allowance(Buyer, coiton_contract_address) == mint_amount, "ALLOWANCE_FAILED");
+    stop_cheat_caller_address(erc20.contract_address);
+
+    // Create purchase request
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    coiton.create_purchase_request(listings.id, Option::Some(4000000000000000000_u256));
+    let purchase_requests = coiton.get_listing_purchase_requests(1);
+    assert!(purchase_requests[0].initiator == @Buyer, "PURCHASE_REQUEST_NOT_CREATED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Approve NFT transfer
+    start_cheat_caller_address(erc721.contract_address, User);
+    erc721.approve(coiton_contract_address, listings.id);
+    assert!(erc721.get_approved(listings.id) == coiton_contract_address, "INSUFFICIENT_ALLOWANCE");
+    stop_cheat_caller_address(erc721.contract_address);
+
+    // Execute approval
+    start_cheat_caller_address(coiton_contract_address, User);
+    coiton.approve_purchase_request(listings.id, 1);
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Verify final state
+    let updated_listing = coiton.get_listing(1);
+    assert!(updated_listing.tag == ListingTag::Sold, "LISTING_NOT_MARKED_SOLD");
+
+    // Check if the event was emitted
+    let expected_event = Event::PurchaseRequest(
+        events::PurchaseRequest {
+            listing_id: 1,
+            request_id: 1,
+            bid_price: Option::None,
+            initiator: User,
+            request_type: PurchaseRequestType::Approve,
+        },
+    );
+    spy.assert_emitted(@array![(coiton_contract_address, expected_event)]);
+
+    // Withdraw
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    let wallet_balance = coiton.get_wallet_balance();
+    assert!(wallet_balance >= 0, "WALLET_BALANCE_NOT_UPDATED");
+    coiton.withdraw();
+    let wallet_balance_after_withdraw = coiton.get_wallet_balance();
+    assert!(wallet_balance_after_withdraw == 0, "WITHDRAW_FAILED");
+    assert!(erc20.balance_of(Owner) == wallet_balance, "WITHDRAW_FAILED");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Check if the owner can with zero balance
+
+    start_cheat_caller_address(coiton_contract_address, Owner);
+    let wallet_balance = coiton.get_wallet_balance();
+    assert!(wallet_balance == 0, "WALLET_BALANCE_NOT_UPDATED");
+    coiton.withdraw();
+    stop_cheat_caller_address(coiton_contract_address);
+
+}
