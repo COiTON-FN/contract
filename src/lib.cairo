@@ -227,7 +227,7 @@ pub mod Coiton {
         fn get_listing_purchase_requests(self: @ContractState, id: u256) -> Array<PurchaseRequest> {
             let mut purchase_requests = array![];
             let mut index = 1;
-            let length = self.purchase_requests_count.read(id) + 1;
+            let length = self.purchase_requests_count.read(id);
 
             while index <= length {
                 let purchase_request = self.purchase_request.read((id, index));

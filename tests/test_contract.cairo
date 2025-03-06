@@ -36,7 +36,7 @@ fn _setup_() -> ContractAddress {
     let mut calldata = array![];
     OWNER().serialize(ref calldata);
     let (coiton_contract_address, _) = coiton.deploy(@calldata).unwrap();
-    let coiton_erc20 = __deploy_Coiton_erc20__(coiton_contract_address);
+    let coiton_erc20 = __deploy_Coiton_erc20__(OWNER());
     let coiton_erc721 = _deploy_coiton_erc721(coiton_contract_address);
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     start_cheat_caller_address(coiton_contract_address, OWNER());
