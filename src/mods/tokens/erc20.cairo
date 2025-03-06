@@ -1,80 +1,157 @@
-// SPDX-License-Identifier: MIT
-// Compatible with OpenZeppelin Contracts for Cairo ^0.20.0
-
 #[starknet::contract]
-mod CTN {
-    use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
-    use openzeppelin::upgrades::interface::IUpgradeable;
-    use openzeppelin::upgrades::UpgradeableComponent;
-    use starknet::{ClassHash, ContractAddress, get_caller_address};
-
-    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
-    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
-    component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
-
-    // External
-    #[abi(embed_v0)]
-    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
-    #[abi(embed_v0)]
-    impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
-
-    // Internal
-    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
-    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
-    impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+pub mod CoitonToken {
+    use starknet::event::EventEmitter;
+    use starknet::{ContractAddress, get_caller_address};
+    use core::starknet::storage::{
+        StoragePointerReadAccess, StoragePointerWriteAccess, Map, StoragePathEntry
+    };
+    use crate::mods::interfaces::ierc20::IERC20;
+    use core::num::traits::Zero;
 
     #[storage]
-    struct Storage {
-        #[substorage(v0)]
-        erc20: ERC20Component::Storage,
-        #[substorage(v0)]
-        ownable: OwnableComponent::Storage,
-        #[substorage(v0)]
-        upgradeable: UpgradeableComponent::Storage,
+    pub struct Storage {
+        balances: Map<ContractAddress, u256>,
+        allowances: Map<
+            (ContractAddress, ContractAddress), u256
+        >, // Mapping<(owner, spender), amount>
+        token_name: ByteArray,
+        symbol: ByteArray,
+        decimal: u8,
+        total_supply: u256,
+        owner: ContractAddress,
     }
 
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event {
-        #[flat]
-        ERC20Event: ERC20Component::Event,
-        #[flat]
-        OwnableEvent: OwnableComponent::Event,
-        #[flat]
-        UpgradeableEvent: UpgradeableComponent::Event,
+    pub enum Event {
+        Transfer: Transfer,
+        Approval: Approval,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct Transfer {
+        #[key]
+        from: ContractAddress,
+        #[key]
+        to: ContractAddress,
+        amount: u256,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct Approval {
+        #[key]
+        owner: ContractAddress,
+        #[key]
+        spender: ContractAddress,
+        value: u256
     }
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
-        self.erc20.initializer("MyToken", "MTK");
-        self.ownable.initializer(owner);
+        self.token_name.write("COITON");
+        self.symbol.write("CTN");
+        self.decimal.write(18);
+        self.owner.write(owner);
     }
-
-    #[generate_trait]
-    #[abi(per_item)]
-    impl ExternalImpl of ExternalTrait {
-        #[external(v0)]
-        fn burn(ref self: ContractState, value: u256) {
-            self.erc20.burn(get_caller_address(), value);
-        }
-
-        #[external(v0)]
-        fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
-            self.ownable.assert_only_owner();
-            self.erc20.mint(recipient, amount);
-        }
-    }
-
-    //
-    // Upgradeable
-    //
 
     #[abi(embed_v0)]
-    impl UpgradeableImpl of IUpgradeable<ContractState> {
-        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
-            self.ownable.assert_only_owner();
-            self.upgradeable.upgrade(new_class_hash);
+    impl CoitonTokenImpl of IERC20<ContractState> {
+        fn total_supply(self: @ContractState) -> u256 {
+            self.total_supply.read()
+        }
+
+        fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
+            let balance = self.balances.entry(account).read();
+
+            balance
+        }
+
+        fn allowance(
+            self: @ContractState, owner: ContractAddress, spender: ContractAddress
+        ) -> u256 {
+            let allowance = self.allowances.entry((owner, spender)).read();
+
+            allowance
+        }
+
+        fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
+            let sender = get_caller_address();
+
+            let sender_prev_balance = self.balances.entry(sender).read();
+            let recipient_prev_balance = self.balances.entry(recipient).read();
+
+            assert(sender_prev_balance >= amount, 'Insufficient amount');
+
+            self.balances.entry(sender).write(sender_prev_balance - amount);
+            self.balances.entry(recipient).write(recipient_prev_balance + amount);
+
+            assert(
+                self.balances.entry(recipient).read() > recipient_prev_balance, 'Transaction failed'
+            );
+
+            self.emit(Transfer { from: sender, to: recipient, amount });
+
+            true
+        }
+
+        fn transfer_from(
+            ref self: ContractState,
+            sender: ContractAddress,
+            recipient: ContractAddress,
+            amount: u256
+        ) -> bool {
+            let spender = get_caller_address();
+
+            let spender_allowance = self.allowances.entry((sender, spender)).read();
+            let sender_balance = self.balances.entry(sender).read();
+            let recipient_balance = self.balances.entry(recipient).read();
+
+            assert(amount <= spender_allowance, 'amount exceeds allowance');
+            assert(amount <= sender_balance, 'amount exceeds balance');
+
+            self.allowances.entry((sender, spender)).write(spender_allowance - amount);
+            self.balances.entry(sender).write(sender_balance - amount);
+            self.balances.entry(recipient).write(recipient_balance + amount);
+
+            self.emit(Transfer { from: sender, to: recipient, amount });
+
+            true
+        }
+
+        fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) -> bool {
+            let caller = get_caller_address();
+
+            self.allowances.entry((caller, spender)).write(amount);
+
+            self.emit(Approval { owner: caller, spender, value: amount });
+
+            true
+        }
+
+        fn name(self: @ContractState) -> ByteArray {
+            self.token_name.read()
+        }
+
+        fn symbol(self: @ContractState) -> ByteArray {
+            self.symbol.read()
+        }
+
+        fn decimals(self: @ContractState) -> u8 {
+            self.decimal.read()
+        }
+
+        fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
+            let previous_total_supply = self.total_supply.read();
+            let previous_balance = self.balances.entry(recipient).read();
+
+            self.total_supply.write(previous_total_supply + amount);
+            self.balances.entry(recipient).write(previous_balance + amount);
+
+            let zero_address = Zero::zero();
+
+            self.emit(Transfer { from: zero_address, to: recipient, amount });
+
+            true
         }
     }
 }

@@ -1,14 +1,14 @@
 use starknet::ContractAddress;
 
 
-#[derive(Drop, Serde, starknet::Store,)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store,)]
 pub enum UserType {
     #[default]
     Individual,
     Entity,
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct User {
     pub id: u256,
     pub verified: bool,
@@ -18,23 +18,31 @@ pub struct User {
     pub registered: bool
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub enum ListingTag {
     Sold,
     ForSale
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
+pub enum ListingType {
+    Land,
+    Building
+}
+
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct Listing {
     pub id: u256,
     pub details: ByteArray,
     pub owner: ContractAddress,
     pub price: u256,
-    pub tag: ListingTag
+    pub tag: ListingTag,
+    pub owner_details: Option<User>,
+    pub listing_type: ListingType
 }
 
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub struct PurchaseRequest {
     pub listing_id: u256,
     pub request_id: u256,

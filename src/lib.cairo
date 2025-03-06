@@ -5,17 +5,18 @@ pub mod Coiton {
     use openzeppelin_token::erc721::ERC721ABIDispatcherTrait;
     use openzeppelin_token::erc20::interface::ERC20ABISafeDispatcherTrait;
     use super::mods::{
-        types::{User, UserType, Listing, PurchaseRequest, ListingTag}, errors::Errors, events,
-        interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
+        types::{User, UserType, Listing, PurchaseRequest, ListingTag, ListingType}, errors::Errors,
+        events, interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
     };
     use starknet::{
         ContractAddress, ClassHash, SyscallResultTrait, storage::Map, get_caller_address,
-        get_contract_address
+        get_contract_address,
     };
     use core::{num::traits::Zero, panic_with_felt252};
     use openzeppelin_token::{
         erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher}
     };
+    const decimal: u256 = 18;
 
 
     #[storage]
@@ -37,7 +38,8 @@ pub mod Coiton {
         erc20: ContractAddress,
         erc721: ContractAddress,
         // UTILITY SECTION
-        version: u16
+        version: u16,
+        wallet: u256
     }
 
     #[event]
@@ -103,17 +105,25 @@ pub mod Coiton {
         }
 
         /// LISTING FUNCTIONS
-        fn create_listing(ref self: ContractState, price: u256, details: ByteArray) {
+        fn create_listing(
+            ref self: ContractState, listing_type: ListingType, price: u256, details: ByteArray
+        ) {
             let caller = get_caller_address();
             assert(self.user.read(caller).registered, Errors::NOT_REGISTERED);
             let id = self.listing_count.read() + 1;
             let new_listing = Listing {
-                id, details, owner: caller, price, tag: ListingTag::ForSale
+                id,
+                details,
+                owner: caller,
+                price,
+                tag: ListingTag::ForSale,
+                owner_details: Option::None,
+                listing_type
             };
             self.listing.write(id, new_listing);
             self.listing_count.write(id);
             let nft = IERC721Dispatcher { contract_address: self.erc721.read() };
-            nft.safe_mint(caller, id, [].span());
+            nft.mint_coiton_nft(caller);
             self.emit(Event::CreateListing(events::CreateListing { id, owner: caller, price }))
         }
 
@@ -130,7 +140,7 @@ pub mod Coiton {
             assert(!self.has_requested.read(caller), Errors::ALREADY_EXIST);
             assert(listing.owner != caller, Errors::INVALID_PARAM);
             if let Option::Some(_price) = bid_price {
-                assert(listing.price >= _price, Errors::PRICE_TOO_LOW);
+                assert(_price >= listing.price, Errors::PRICE_TOO_LOW);
             }
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
             let price = if let Option::Some(_price) = bid_price {
@@ -178,18 +188,21 @@ pub mod Coiton {
             let caller = get_caller_address();
             let contract = get_contract_address();
             assert(caller == listing.owner, Errors::UNAUTHORIZED);
-            let nft = ERC721ABIDispatcher { contract_address: self.erc721.read() };
+            let nft = IERC721Dispatcher { contract_address: self.erc721.read() };
             assert(nft.get_approved(listing.id) == contract, Errors::INSUFFICIENT_ALLOWANCE);
-            nft.transfer_from(caller, contract, listing.id);
+            nft.transfer_from(listing.owner, caller, listing.id);
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
-            erc20.transfer(listing.owner, purchase_request.price).unwrap();
-            // TRANSFER NFT OWNERSHIP HERE
 
+            let fee = (listing.price * 2) / 100;
+            let amount_to_send = listing.price - fee;
+
+            erc20.transfer(listing.owner, amount_to_send).unwrap();
+            self.wallet.write(self.wallet.read() + fee);
             self.listing.write(listing_id, Listing { tag: ListingTag::Sold, ..listing });
 
             /// REFUND BACK ANY OTHER PURCHASE REQUESTS
             let mut index = 1;
-            let length = self.purchase_requests_count.read(listing_id) + 1;
+            let length = self.purchase_requests_count.read(listing_id);
             while index <= length {
                 let _purchase_request = self.purchase_request.read((listing_id, index));
                 if _purchase_request.initiator != purchase_request.initiator {
@@ -258,7 +271,11 @@ pub mod Coiton {
             let mut listings = array![];
             let length = self.listing_count.read();
             while index <= length {
-                listings.append(self.listing.read(index));
+                let listing = self.listing.read(index);
+                let listing_construct = Listing {
+                    owner_details: Option::Some(self.get_user(listing.owner)), ..listing
+                };
+                listings.append(listing_construct);
                 index += 1;
             };
             listings
@@ -268,9 +285,13 @@ pub mod Coiton {
             let mut listings = array![];
             let length = self.listing_count.read();
             while index <= length {
+                let user = self.get_user(address);
                 let listing = self.listing.read(index);
                 if listing.owner == address {
-                    listings.append(listing);
+                    let listing_construct = Listing {
+                        owner_details: Option::Some(user), ..listing
+                    };
+                    listings.append(listing_construct);
                 }
                 index += 1;
             };
@@ -285,7 +306,17 @@ pub mod Coiton {
         }
 
         fn get_listing(self: @ContractState, id: u256) -> Listing {
-            self.listing.read(id)
+            let listing = self.listing.read(id);
+            let listing_construct = Listing {
+                owner_details: Option::Some(self.get_user(listing.owner)), ..listing
+            };
+            listing_construct
+        }
+
+        fn get_purchase(
+            self: @ContractState, listing_id: u256, request_id: u256
+        ) -> PurchaseRequest {
+            self.purchase_request.read((listing_id, request_id))
         }
 
         fn get_owner(self: @ContractState) -> ContractAddress {
@@ -311,6 +342,10 @@ pub mod Coiton {
             self.erc721.read()
         }
 
+        fn get_wallet_balance(self: @ContractState) -> u256 {
+            self.wallet.read()
+        }
+
 
         //  UTILITY FUNCTIONS
         fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
@@ -323,6 +358,17 @@ pub mod Coiton {
 
         fn version(self: @ContractState) -> u16 {
             self.version.read()
+        }
+
+
+        fn withdraw(ref self: ContractState) {
+            let owner = self.owner.read();
+            assert(get_caller_address() == owner, Errors::UNAUTHORIZED);
+            let wallet = self.wallet.read();
+            assert(wallet > 0, 'ZERO_BALANCE');
+            let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
+            erc20.transfer(owner, wallet).unwrap();
+            self.wallet.write(0);
         }
     }
 }

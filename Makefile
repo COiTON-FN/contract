@@ -11,11 +11,11 @@ declare:
     --contract-name ${name}
 
 deploy:
-	sncast deploy --fee-token eth --class-hash ${class_hash} --constructor-calldata ${arg}
+	sncast deploy --fee-token eth --class-hash ${classhash} --constructor-calldata ${arg}
 
 
 t:
-	export RUST_BACKTRACE=full && snforge test
+	export SNFORGE_BACKTRACE=1 && snforge test
 
 upgrade:
 	sncast \
