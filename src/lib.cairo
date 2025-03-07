@@ -30,7 +30,7 @@ pub mod Coiton {
         listing: Map::<u256, Listing>,
         purchase_requests_count: Map::<u256, u256>,
         purchase_request_pointer: Map::<(u256, ContractAddress), u256>,
-        has_requested: Map::<ContractAddress, bool>,
+        has_requested: Map::<(ContractAddress, u256), bool>,
         purchase_request: Map::<(u256, u256), PurchaseRequest>,
         request_notification_count: Map::<ContractAddress, u256>,
         request_notification_pointer: Map::<u256, u256>,
@@ -137,7 +137,8 @@ pub mod Coiton {
             if let ListingTag::Sold = listing.tag {
                 panic_with_felt252(Errors::NOT_FOR_SALE);
             }
-            assert(!self.has_requested.read(caller), Errors::ALREADY_EXIST);
+
+            assert(!self.has_requested.read((caller, listing_id)), Errors::ALREADY_EXIST);
             assert(listing.owner != caller, Errors::INVALID_PARAM);
             if let Option::Some(_price) = bid_price {
                 assert(_price >= listing.price, Errors::PRICE_TOO_LOW);
@@ -151,8 +152,9 @@ pub mod Coiton {
             assert(
                 erc20.allowance(caller, contract).unwrap() >= price, Errors::INSUFFICIENT_ALLOWANCE
             );
+
             erc20.transfer_from(caller, contract, price).unwrap();
-            self.has_requested.write(caller, true);
+            self.has_requested.write((caller, listing_id), true);
             let request_id = self.purchase_requests_count.read(listing_id) + 1;
             let notification_index = self.request_notification_count.read(listing.owner) + 1;
             self.request_notification_count.write(listing.owner, notification_index);
