@@ -1,5 +1,5 @@
 use starknet::{ClassHash, ContractAddress};
-
+use crate::mods::types::ListingTag;
 #[derive(Copy, Drop, starknet::Event)]
 pub struct Upgrade {
     #[key]
@@ -30,6 +30,7 @@ pub struct CreateListing {
     #[key]
     pub price: u256
 }
+
 
 #[derive(Copy, Drop, Serde)]
 pub enum PurchaseRequestType {

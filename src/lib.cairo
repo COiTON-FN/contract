@@ -2,7 +2,6 @@ pub mod mods;
 
 #[starknet::contract]
 pub mod Coiton {
-    use openzeppelin_token::erc721::ERC721ABIDispatcherTrait;
     use openzeppelin_token::erc20::interface::ERC20ABISafeDispatcherTrait;
     use super::mods::{
         types::{User, UserType, Listing, PurchaseRequest, ListingTag, ListingType}, errors::Errors,
@@ -13,9 +12,7 @@ pub mod Coiton {
         get_contract_address,
     };
     use core::{num::traits::Zero, panic_with_felt252};
-    use openzeppelin_token::{
-        erc20::interface::{ERC20ABISafeDispatcher}, erc721::interface::{ERC721ABIDispatcher}
-    };
+    use openzeppelin_token::{erc20::interface::{ERC20ABISafeDispatcher}};
     const decimal: u256 = 18;
 
 
@@ -127,6 +124,14 @@ pub mod Coiton {
             self.emit(Event::CreateListing(events::CreateListing { id, owner: caller, price }))
         }
 
+        fn update_listing_tag(ref self: ContractState, listing_id: u256, tag: ListingTag) {
+            let listing = self.listing.read(listing_id);
+            assert(listing.owner.is_non_zero(), Errors::INVALID_LISTING);
+            assert(listing.owner == get_caller_address(), Errors::UNAUTHORIZED);
+            assert(listing.tag != tag, 'ALREADY_SET');
+            self.listing.write(listing_id, Listing { tag, ..listing });
+        }
+
         fn create_purchase_request(
             ref self: ContractState, listing_id: u256, bid_price: Option<u256>
         ) {
@@ -210,8 +215,22 @@ pub mod Coiton {
                 if _purchase_request.initiator != purchase_request.initiator {
                     erc20.transfer(_purchase_request.initiator, _purchase_request.price).unwrap();
                 }
+                self
+                    .purchase_request
+                    .write(
+                        (listing_id, index),
+                        PurchaseRequest {
+                            listing_id: 0,
+                            request_id: 0,
+                            price: 0,
+                            initiator: 0.try_into().unwrap(),
+                            user: Option::None
+                        }
+                    );
                 index += 1;
             };
+
+            self.purchase_requests_count.write(listing_id, 0);
             self
                 .emit(
                     Event::PurchaseRequest(
