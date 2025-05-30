@@ -101,6 +101,23 @@ pub mod Coiton {
             user
         }
 
+
+        fn get_users_by_type(self: @ContractState, user_type: UserType) -> Array<User> {
+            let mut result: Array<User> = array![];
+            let mut index = 1;
+
+            while index <= self.users_count.read() {
+                let user_address_from_pointer = self.user_id_pointer.read(index);
+                let user = self.user.read(user_address_from_pointer);
+                if user.user_type == user_type {
+                    result.append(user);
+                };
+                index += 1;
+            };
+            return result;
+        }
+
+
         /// LISTING FUNCTIONS
         fn create_listing(
             ref self: ContractState, listing_type: ListingType, price: u256, details: ByteArray

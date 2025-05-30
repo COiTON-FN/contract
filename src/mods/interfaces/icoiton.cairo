@@ -12,6 +12,7 @@ pub trait ICoiton<TContractState> {
     fn create_listing(
         ref self: TContractState, listing_type: ListingType, price: u256, details: ByteArray
     );
+    fn get_users_by_type(self: @TContractState, user_type: UserType) -> Array<User>;
     fn get_all_listings(self: @TContractState) -> Array<Listing>;
     fn get_listings_by_ids(self: @TContractState, ids: Array<u256>) -> Array<Listing>;
     fn get_listing(self: @TContractState, id: u256) -> Listing;

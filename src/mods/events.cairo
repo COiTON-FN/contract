@@ -1,5 +1,4 @@
 use starknet::{ClassHash, ContractAddress};
-use crate::mods::types::ListingTag;
 #[derive(Copy, Drop, starknet::Event)]
 pub struct Upgrade {
     #[key]
