@@ -1,5 +1,4 @@
 use starknet::{ClassHash, ContractAddress};
-
 #[derive(Copy, Drop, starknet::Event)]
 pub struct Upgrade {
     #[key]
@@ -30,6 +29,7 @@ pub struct CreateListing {
     #[key]
     pub price: u256
 }
+
 
 #[derive(Copy, Drop, Serde)]
 pub enum PurchaseRequestType {
