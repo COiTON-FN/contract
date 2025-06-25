@@ -4,8 +4,8 @@ pub mod mods;
 pub mod Coiton {
     use openzeppelin_token::erc20::interface::ERC20ABISafeDispatcherTrait;
     use super::mods::{
-        types::{User, UserType, Listing, PurchaseRequest, ListingTag, ListingType}, errors::Errors,
-        events, interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
+        types::{User, Listing, PurchaseRequest, ListingTag, ListingType}, errors::Errors, events,
+        interfaces::{ierc721::{IERC721Dispatcher, IERC721DispatcherTrait}, icoiton::ICoiton}
     };
     use starknet::{
         ContractAddress, ClassHash, SyscallResultTrait, storage::Map, get_caller_address,
@@ -59,7 +59,7 @@ pub mod Coiton {
     #[abi(embed_v0)]
     impl CoitonImpl of ICoiton<ContractState> {
         /// USER FUNCTIONS
-        fn register(ref self: ContractState, user_type: UserType, details: ByteArray) {
+        fn register(ref self: ContractState, user_type: u8, details: ByteArray) {
             let caller = get_caller_address();
             assert(!self.user.read(caller).registered, Errors::ALREADY_EXIST);
             let id = self.users_count.read() + 1;
@@ -79,6 +79,7 @@ pub mod Coiton {
                     )
                 )
         }
+
         fn verify_user(ref self: ContractState, address: ContractAddress) {
             assert(get_caller_address() == self.owner.read(), Errors::UNAUTHORIZED);
             let user = self.user.read(address);
@@ -102,7 +103,7 @@ pub mod Coiton {
         }
 
 
-        fn get_users_by_type(self: @ContractState, user_type: UserType) -> Array<User> {
+        fn get_users_by_type(self: @ContractState, user_type: u8) -> Array<User> {
             let mut result: Array<User> = array![];
             let mut index = 1;
 
