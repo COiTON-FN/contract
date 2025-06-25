@@ -1,18 +1,18 @@
 use starknet::{ContractAddress, ClassHash};
-use crate::mods::types::{User, UserType, ListingType, Listing, ListingTag, PurchaseRequest};
+use crate::mods::types::{User, ListingType, Listing, ListingTag, PurchaseRequest};
 
 
 #[starknet::interface]
 pub trait ICoiton<TContractState> {
     //  USER SECTION
-    fn register(ref self: TContractState, user_type: UserType, details: ByteArray);
+    fn register(ref self: TContractState, user_type: u8, details: ByteArray);
     fn verify_user(ref self: TContractState, address: ContractAddress);
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
     //  LISTING SECTION
     fn create_listing(
         ref self: TContractState, listing_type: ListingType, price: u256, details: ByteArray
     );
-    fn get_users_by_type(self: @TContractState, user_type: UserType) -> Array<User>;
+    fn get_users_by_type(self: @TContractState, user_type: u8) -> Array<User>;
     fn get_all_listings(self: @TContractState) -> Array<Listing>;
     fn get_listings_by_ids(self: @TContractState, ids: Array<u256>) -> Array<Listing>;
     fn get_listing(self: @TContractState, id: u256) -> Listing;

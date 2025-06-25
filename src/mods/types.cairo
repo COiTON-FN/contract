@@ -1,9 +1,10 @@
 use starknet::ContractAddress;
 
 
-#[derive(Drop, Debug, PartialEq, Serde, starknet::Store,)]
+// #[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
+#[derive(Drop, Debug, PartialEq, Serde, starknet::Store)]
 pub enum UserType {
-    #[default]
+    // #[default]
     Individual,
     Entity,
 }
@@ -13,7 +14,7 @@ pub struct User {
     pub id: u256,
     pub verified: bool,
     pub details: ByteArray,
-    pub user_type: UserType,
+    pub user_type: u8,
     pub address: ContractAddress,
     pub registered: bool
 }
