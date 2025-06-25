@@ -92,10 +92,11 @@ fn test_register_user_as_entity() {
     start_cheat_caller_address(coiton_contract_address, User);
 
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
 
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    assert!(is_registered.user_type == 1, "INVALID_USER_TYPE");
     stop_cheat_caller_address(coiton_contract_address);
 }
 
@@ -108,10 +109,11 @@ fn test_register_user_as_individual() {
     start_cheat_caller_address(coiton_contract_address, User);
 
     let details: ByteArray = "TEST_USERS_INDIVIDUAL";
-    coiton.register(UserType::Individual, details);
+    coiton.register(0, details);
 
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_INDIVIDUAL", "ALREADY_EXISTS");
+    assert!(is_registered.user_type == 0, "INVALID_USER_TYPE");
 
     stop_cheat_caller_address(coiton_contract_address);
 }
@@ -128,12 +130,12 @@ fn test_register_user_entity_twice() {
     // register as entity
 
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered_entity = coiton.get_user(User);
     assert!(is_registered_entity.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
 
     let details1: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details1);
+    coiton.register(1, details1);
     let is_registered_entity1 = coiton.get_user(User);
     assert!(is_registered_entity1.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
 
@@ -152,12 +154,12 @@ fn test_register_user_individual_twice() {
     // register as entity
 
     let details: ByteArray = "TEST_USERS_INDIVIDUAL";
-    coiton.register(UserType::Individual, details);
+    coiton.register(0, details);
     let is_registered_entity = coiton.get_user(User);
     assert!(is_registered_entity.details == "TEST_USERS_INDIVIDUAL", "ALREADY_EXISTS");
 
     let details1: ByteArray = "TEST_USERS_INDIVIDUAL";
-    coiton.register(UserType::Individual, details1);
+    coiton.register(0, details1);
     let is_registered_entity1 = coiton.get_user(User);
     assert!(is_registered_entity1.details == "TEST_USERS_INDIVIDUAL", "ALREADY_EXISTS");
 
@@ -175,7 +177,7 @@ fn test_register_user_emit_event() {
     start_cheat_caller_address(coiton_contract_address, User);
 
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
 
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
@@ -199,7 +201,7 @@ fn test_verify_user() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -223,7 +225,7 @@ fn test_verify_user_emit_event() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -252,7 +254,7 @@ fn test_verify_user_unauthorized() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -288,7 +290,7 @@ fn test_create_listing() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -312,7 +314,7 @@ fn test_create_listing_by_id() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -335,7 +337,7 @@ fn test_create_listing_by_user() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -371,7 +373,7 @@ fn test_all_create_listing() {
 
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -470,7 +472,7 @@ fn test_nft_was_minted_after_listings_was_created() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -535,7 +537,7 @@ fn test_create_listings_event() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -572,7 +574,7 @@ fn test_create_purchase_request() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -625,7 +627,7 @@ fn test_create_purchase_request_with_invalid_param() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -666,7 +668,7 @@ fn test_create_purchase_request_already_exist() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -712,7 +714,7 @@ fn test_create_purchase_request_insufficient_allowance() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -752,7 +754,7 @@ fn test_create_purchase_request_emit_event() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -823,7 +825,7 @@ fn test_approve_purchase_request() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -898,7 +900,7 @@ fn test_approve_purchase_request_unauthorized() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -971,7 +973,7 @@ fn test_approve_purchase_request_insufficient_allowance() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1042,7 +1044,7 @@ fn test_approve_purchase_request_emit_event() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1129,7 +1131,7 @@ fn test_listings_sold() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1210,7 +1212,7 @@ fn test_create_purchase_request_price_too_low() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1269,7 +1271,7 @@ fn test_create_listing_nft_owner() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1311,7 +1313,7 @@ fn test_create_listing_nft_owner() {
     //Register User2
     start_cheat_caller_address(coiton_contract_address, User2);
     let details2: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details2);
+    coiton.register(1, details2);
     let is_registered = coiton.get_user(User2);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1379,7 +1381,7 @@ fn test_withdraw() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1452,7 +1454,6 @@ fn test_withdraw() {
 #[test]
 #[should_panic(expected: 'ZERO_BALANCE')]
 fn test_withdraw_zero_balance() {
-
     let coiton_contract_address = _setup_();
     let coiton = ICoitonDispatcher { contract_address: coiton_contract_address };
     let erc20 = IERC20Dispatcher { contract_address: coiton.get_erc20() };
@@ -1479,7 +1480,7 @@ fn test_withdraw_zero_balance() {
     // Register user
     start_cheat_caller_address(coiton_contract_address, User);
     let details: ByteArray = "TEST_USERS_ENTITY";
-    coiton.register(UserType::Entity, details);
+    coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
@@ -1554,5 +1555,4 @@ fn test_withdraw_zero_balance() {
     assert!(wallet_balance == 0, "WALLET_BALANCE_NOT_UPDATED");
     coiton.withdraw();
     stop_cheat_caller_address(coiton_contract_address);
-
 }
