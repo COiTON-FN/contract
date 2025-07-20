@@ -223,7 +223,7 @@ pub mod Coiton {
             assert(caller == listing.owner, Errors::UNAUTHORIZED);
             let nft = IERC721Dispatcher { contract_address: self.erc721.read() };
             assert(nft.get_approved(listing.id) == contract, Errors::INSUFFICIENT_ALLOWANCE);
-            nft.transfer_from(listing.owner, caller, listing.id);
+            nft.transfer_from(listing.owner, purchase_request.initiator, listing.id);
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
 
             let fee = (listing.price * 5) / 100;
