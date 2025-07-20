@@ -18,6 +18,7 @@ pub trait ICoiton<TContractState> {
     fn get_listing(self: @TContractState, id: u256) -> Listing;
     fn get_user_listings(self: @TContractState, address: ContractAddress) -> Array<Listing>;
     fn create_purchase_request(ref self: TContractState, listing_id: u256, bid_price: Option<u256>);
+    fn get_user_listings_history(self: @TContractState, address: ContractAddress) -> Array<Listing>;
     fn approve_purchase_request(ref self: TContractState, listing_id: u256, request_id: u256);
     fn get_listings_with_purchase_requests(
         self: @TContractState, address: ContractAddress

@@ -830,6 +830,14 @@ fn test_approve_purchase_request() {
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
+    // Register buyer
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    let details: ByteArray = "TEST_USERS_INDI";
+    coiton.register(1, details);
+    let is_registered = coiton.get_user(Buyer);
+    assert!(is_registered.details == "TEST_USERS_INDI", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
     // Verify user (admin action)
     start_cheat_caller_address(coiton_contract_address, Owner);
     coiton.verify_user(User);
@@ -1049,6 +1057,14 @@ fn test_approve_purchase_request_emit_event() {
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
+    // Register buyer
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    let details: ByteArray = "TEST_USERS_INDI";
+    coiton.register(1, details);
+    let is_registered = coiton.get_user(Buyer);
+    assert!(is_registered.details == "TEST_USERS_INDI", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
     // Verify user (admin action)
     start_cheat_caller_address(coiton_contract_address, Owner);
     coiton.verify_user(User);
@@ -1134,6 +1150,14 @@ fn test_listings_sold() {
     coiton.register(1, details);
     let is_registered = coiton.get_user(User);
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
+    // Register buyer
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    let details: ByteArray = "TEST_USERS_INDI";
+    coiton.register(1, details);
+    let is_registered = coiton.get_user(Buyer);
+    assert!(is_registered.details == "TEST_USERS_INDI", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
     // Verify user (admin action)
@@ -1386,6 +1410,14 @@ fn test_withdraw() {
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
+    // Register buyer
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    let details: ByteArray = "TEST_USERS_INDI";
+    coiton.register(1, details);
+    let is_registered = coiton.get_user(Buyer);
+    assert!(is_registered.details == "TEST_USERS_INDI", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
     // Verify user (admin action)
     start_cheat_caller_address(coiton_contract_address, Owner);
     coiton.verify_user(User);
@@ -1485,6 +1517,14 @@ fn test_withdraw_zero_balance() {
     assert!(is_registered.details == "TEST_USERS_ENTITY", "ALREADY_EXISTS");
     stop_cheat_caller_address(coiton_contract_address);
 
+    // Register buyer
+    start_cheat_caller_address(coiton_contract_address, Buyer);
+    let details: ByteArray = "TEST_USERS_INDI";
+    coiton.register(1, details);
+    let is_registered = coiton.get_user(Buyer);
+    assert!(is_registered.details == "TEST_USERS_INDI", "ALREADY_EXISTS");
+    stop_cheat_caller_address(coiton_contract_address);
+
     // Verify user (admin action)
     start_cheat_caller_address(coiton_contract_address, Owner);
     coiton.verify_user(User);
@@ -1551,6 +1591,11 @@ fn test_withdraw_zero_balance() {
     // Check if the owner can with zero balance
 
     start_cheat_caller_address(coiton_contract_address, Owner);
+    let wallet_balance = coiton.get_wallet_balance();
+    assert!(wallet_balance == 0, "WALLET_BALANCE_NOT_UPDATED");
+    coiton.withdraw();
+    stop_cheat_caller_address(coiton_contract_address);
+
     let wallet_balance = coiton.get_wallet_balance();
     assert!(wallet_balance == 0, "WALLET_BALANCE_NOT_UPDATED");
     coiton.withdraw();

@@ -25,6 +25,9 @@ pub mod Coiton {
         //  LISTING SECTIOIN
         listing_count: u256,
         listing: Map::<u256, Listing>,
+        // history
+        listing_history_count: Map::<ContractAddress, u256>,
+        listing_history: Map::<(ContractAddress, u256), u256>,
         purchase_requests_count: Map::<u256, u256>,
         purchase_request_pointer: Map::<(u256, ContractAddress), u256>,
         has_requested: Map::<(ContractAddress, u256), bool>,
@@ -188,7 +191,12 @@ pub mod Coiton {
                 .write(
                     (listing_id, request_id),
                     PurchaseRequest {
-                        initiator: caller, request_id, listing_id, price, user: Option::None
+                        initiator: caller,
+                        request_id,
+                        listing_id,
+                        price,
+                        user: Option::None,
+                        status: 0
                     }
                 );
             self.purchase_requests_count.write(listing_id, request_id);
@@ -218,12 +226,17 @@ pub mod Coiton {
             nft.transfer_from(listing.owner, caller, listing.id);
             let erc20 = ERC20ABISafeDispatcher { contract_address: self.erc20.read() };
 
-            let fee = (listing.price * 2) / 100;
+            let fee = (listing.price * 5) / 100;
             let amount_to_send = listing.price - fee;
 
             erc20.transfer(listing.owner, amount_to_send).unwrap();
             self.wallet.write(self.wallet.read() + fee);
-            self.listing.write(listing_id, Listing { tag: ListingTag::Sold, ..listing });
+            self
+                .listing
+                .write(
+                    listing_id,
+                    Listing { tag: ListingTag::Sold, owner: purchase_request.initiator, ..listing }
+                );
 
             /// REFUND BACK ANY OTHER PURCHASE REQUESTS
             let mut index = 1;
@@ -232,23 +245,34 @@ pub mod Coiton {
                 let _purchase_request = self.purchase_request.read((listing_id, index));
                 if _purchase_request.initiator != purchase_request.initiator {
                     erc20.transfer(_purchase_request.initiator, _purchase_request.price).unwrap();
+                } else {
+                    self
+                        .purchase_request
+                        .write(
+                            (listing_id, index), PurchaseRequest { status: 1, .._purchase_request }
+                        );
                 }
-                self
-                    .purchase_request
-                    .write(
-                        (listing_id, index),
-                        PurchaseRequest {
-                            listing_id: 0,
-                            request_id: 0,
-                            price: 0,
-                            initiator: 0.try_into().unwrap(),
-                            user: Option::None
-                        }
-                    );
+
+                // self
+                //     .purchase_request
+                //     .write(
+                //         (listing_id, index),
+                //         PurchaseRequest {
+                //             listing_id: 0,
+                //             request_id: 0,
+                //             price: 0,
+                //             initiator: 0.try_into().unwrap(),
+                //             user: Option::None
+                //         }
+                //     );
                 index += 1;
             };
 
-            self.purchase_requests_count.write(listing_id, 0);
+            self
+                .listing_history
+                .write((caller, self.listing_history_count.read(caller) + 1), listing_id);
+
+            // self.purchase_requests_count.write(listing_id, 0);
             self
                 .emit(
                     Event::PurchaseRequest(
@@ -336,6 +360,25 @@ pub mod Coiton {
             };
             listings
         }
+
+        fn get_user_listings_history(
+            self: @ContractState, address: ContractAddress
+        ) -> Array<Listing> {
+            let mut index = 1;
+            let mut listings = array![];
+            let length = self.listing_history_count.read(address);
+            while index <= length {
+                let user = self.get_user(address);
+                let listing_id = self.listing_history.read((address, index));
+                let listing = self.listing.read(listing_id);
+                let listing_construct = Listing { owner_details: Option::Some(user), ..listing };
+                listings.append(listing_construct);
+
+                index += 1;
+            };
+            listings
+        }
+
         fn get_listings_by_ids(self: @ContractState, ids: Array<u256>) -> Array<Listing> {
             let mut listings = array![];
             for id in ids {

@@ -49,5 +49,14 @@ pub struct PurchaseRequest {
     pub request_id: u256,
     pub price: u256,
     pub initiator: ContractAddress,
-    pub user: Option<User>
+    pub user: Option<User>,
+    pub status: u8
 }
+// {
+//     type_:General|Personalized,
+//     title:String,
+//     message:String,
+//     timestamp:u64,
+//     to:Option<ContractAddress>
+// }
+
