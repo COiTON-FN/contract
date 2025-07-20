@@ -268,10 +268,9 @@ pub mod Coiton {
                 index += 1;
             };
 
-            self
-                .listing_history
-                .write((caller, self.listing_history_count.read(caller) + 1), listing_id);
-
+            let history_count = self.listing_history_count.read(caller) + 1;
+            self.listing_history.write((caller, history_count), listing_id);
+            self.listing_history_count.write(caller, history_count);
             // self.purchase_requests_count.write(listing_id, 0);
             self
                 .emit(
